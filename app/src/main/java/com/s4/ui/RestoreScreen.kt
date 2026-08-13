@@ -39,6 +39,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.SpanStyle
@@ -47,11 +49,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.s4.S4HeaderBar
+import com.s4.R
 import com.s4.bip39.Bip39
 import com.s4.crypto.Slip39
 import com.s4.crypto.Slip39Exception
 import com.s4.crypto.Slip39Wordlist
+import com.s4.ui.components.S4HeaderBar
 import com.s4.ui.theme.MonoMeta
 import com.s4.ui.theme.RobotoMono
 import kotlinx.coroutines.Dispatchers
@@ -85,6 +88,14 @@ fun RestoreScreen(
     var result by remember { mutableStateOf<RestoreResult?>(null) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val fingerprintPrefix = stringResource(R.string.fingerprint_prefix)
+    val fingerprintWithPassphrasePrefix = stringResource(R.string.fingerprint_with_passphrase_prefix)
+    val errNotEnoughShares = stringResource(R.string.restore_err_not_enough)
+    val errMismatchedSet = stringResource(R.string.restore_err_mismatch)
+    val errBadChecksum = stringResource(R.string.restore_err_checksum)
+    val errTooFewWords = stringResource(R.string.restore_err_too_few_words)
+    val errFallback = stringResource(R.string.restore_err_fallback)
+    val errInvalidInput = stringResource(R.string.restore_err_invalid_input)
 
     Column(
         modifier = Modifier
@@ -101,8 +112,8 @@ fun RestoreScreen(
         ) {
             // ── Header ─────────────────────────────────────────────────────────
             ScreenHeader(
-                title    = "Restore a wallet",
-                subtitle = "Paste your seed shares (one SLIP-39 share per line) to reconstruct the original seed phrase.",
+                title    = stringResource(R.string.restore_title),
+                subtitle = stringResource(R.string.restore_subtitle),
             )
 
         // ── Share input ────────────────────────────────────────────────────
@@ -129,7 +140,7 @@ fun RestoreScreen(
 
         // ── Result card ────────────────────────────────────────────────────
         result?.let { res ->
-            SectionCard(eyebrow = "Recovered seed phrase") {
+            SectionCard(eyebrow = stringResource(R.string.recovered_eyebrow)) {
                 Text(
                     text  = res.words.joinToString(" "),
                     style = MonoMeta.data,
@@ -138,8 +149,9 @@ fun RestoreScreen(
 
                 Text(
                     text = buildAnnotatedString {
-                        val prefix = if (res.passphraseUsed) "Fingerprint (with passphrase): " else "Fingerprint: "
-                        append(prefix)
+                        append(
+                            if (res.passphraseUsed) fingerprintWithPassphrasePrefix else fingerprintPrefix,
+                        )
                         withStyle(
                             SpanStyle(
                                 fontFamily    = RobotoMono,
@@ -154,10 +166,10 @@ fun RestoreScreen(
                 )
 
                 Text(
-                    if (res.passphraseUsed)
-                        "This fingerprint is derived from your seed + passphrase — confirm it matches the one noted at split time."
-                    else
-                        "This fingerprint is derived from your seed — confirm it matches the one noted at split time.",
+                    stringResource(
+                        if (res.passphraseUsed) R.string.fingerprint_verify_passphrase
+                        else R.string.fingerprint_verify
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -166,8 +178,8 @@ fun RestoreScreen(
 
         // ── CTA ────────────────────────────────────────────────────────────
         ActionButton(
-            label        = "Restore wallet",
-            loadingLabel = "Restoring…",
+            label        = stringResource(R.string.restore_wallet),
+            loadingLabel = stringResource(R.string.restoring),
             busy         = busy,
             onClick      = {
                 busy   = true
@@ -184,20 +196,16 @@ fun RestoreScreen(
                         result = RestoreResult(words = words, fingerprint = fp, passphraseUsed = passphrase.isNotEmpty())
                     } catch (e: Slip39Exception) {
                         error = when (e.code) {
-                            ERROR_NOT_ENOUGH_SHARES ->
-                                "Not enough shares: you need at least the split threshold, and each share must be correct."
-                            ERROR_MISMATCHED_SET ->
-                                "These shares are not from the same wallet (mismatched identifiers)."
-                            ERROR_BAD_CHECKSUM ->
-                                "Checksum failed: one or more shares are incorrect (a wrong or corrupted word)."
-                            ERROR_NOT_ENOUGH_WORDS ->
-                                "A share has too few words to be a valid SLIP-39 share."
-                            else -> e.message ?: "restore failed"
+                            ERROR_NOT_ENOUGH_SHARES -> errNotEnoughShares
+                            ERROR_MISMATCHED_SET -> errMismatchedSet
+                            ERROR_BAD_CHECKSUM -> errBadChecksum
+                            ERROR_NOT_ENOUGH_WORDS -> errTooFewWords
+                            else -> e.message ?: errFallback
                         }
                     } catch (e: IllegalArgumentException) {
-                        error = e.message ?: "invalid input"
+                        error = e.message ?: errInvalidInput
                     } catch (e: Exception) {
-                        error = e.message ?: "restore failed"
+                        error = e.message ?: errFallback
                     } finally {
                         busy = false
                     }
@@ -214,7 +222,10 @@ fun RestoreScreen(
                 .fillMaxWidth()
                 .testTag("openGuideRestore"),
         ) {
-            Text("Recovery Guide", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.recovery_guide),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -250,9 +261,11 @@ private fun ShareInput(value: String, onValueChange: (String) -> Unit) {
                     onValueChange(it.text)
                 }
             },
-            label          = { Text("Seed shares, one per line") },
-            placeholder    = { Text("academic acid acne …\nafterlife again agency …") },
-            supportingText = { Text("$typedCount word${if (typedCount == 1) "" else "s"} typed — SLIP-39 shares are 20–33 words each") },
+            label          = { Text(stringResource(R.string.shares_label)) },
+            placeholder    = { Text(stringResource(R.string.shares_placeholder)) },
+            supportingText = {
+                Text(pluralStringResource(R.plurals.shares_typed, typedCount, typedCount))
+            },
             minLines       = 6,
             shape          = MaterialTheme.shapes.small,
             colors         = s4TextFieldColors(),

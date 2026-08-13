@@ -39,13 +39,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.s4.S4HeaderBar
+import com.s4.R
+import com.s4.ui.components.S4HeaderBar
 import com.s4.ui.theme.MonoMeta
 import com.s4.ui.theme.RobotoMono
 import kotlinx.coroutines.launch
@@ -66,6 +68,7 @@ fun SplitResultScreen(
     val scope = rememberCoroutineScope()
     var copied by remember { mutableStateOf(false) }
     var showCopyWarning by remember { mutableStateOf(false) }
+    val fingerprintPrefix = stringResource(R.string.fingerprint_prefix)
 
     Column(
         modifier = Modifier
@@ -81,21 +84,18 @@ fun SplitResultScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             // ── Header ─────────────────────────────────────────────────────────
-        ScreenHeader(
-            title    = "Seed shares",
-            subtitle = "Keep each share in a separate, secure location. Any " +
-                "${session?.params?.threshold ?: "—"} of ${session?.shares?.size ?: "—"} " +
-                "restore the wallet. Write them down — S4 never stores them.",
-        )
+            ScreenHeader(
+                title = stringResource(R.string.results_title),
+                subtitle = session?.let {
+                    stringResource(R.string.results_subtitle_format, it.params.threshold, it.shares.size)
+                } ?: stringResource(R.string.results_subtitle_placeholder),
+            )
 
         // ── Session metadata ───────────────────────────────────────────────
         session?.let { sess ->
             // Passphrase warning
             if (sess.passphraseUsed) {
-                WarningBanner(
-                    "This wallet uses a BIP-39 passphrase. The shares recover only the seed words — " +
-                    "the passphrase must be kept separately."
-                )
+                WarningBanner(stringResource(R.string.passphrase_warning))
             }
 
             // Fingerprint strip
@@ -107,7 +107,7 @@ fun SplitResultScreen(
                 ) {
                     Text(
                         text = buildAnnotatedString {
-                            append("Fingerprint: ")
+                            append(fingerprintPrefix)
                             withStyle(
                                 SpanStyle(
                                     fontFamily    = RobotoMono,
@@ -132,8 +132,8 @@ fun SplitResultScreen(
         // ── Actions ────────────────────────────────────────────────────────
         val copyText = session?.shares?.joinToString("\n")
         ActionButton(
-            label        = if (copied) "Copied" else "Copy all",
-            loadingLabel = "Copying…",
+            label        = if (copied) stringResource(R.string.copied) else stringResource(R.string.copy_all),
+            loadingLabel = stringResource(R.string.copying),
             busy         = false,
             enabled      = copyText != null,
             onClick      = { if (copyText != null) showCopyWarning = true },
@@ -142,10 +142,8 @@ fun SplitResultScreen(
 
         if (showCopyWarning && copyText != null) {
             ClipboardRiskDialog(
-                title = "Copy the full seed to the clipboard?",
-                message = "This copies every share — the complete seed — to the system clipboard, " +
-                    "where it can be read by other apps (keyboards, accessibility tools) and persists " +
-                    "after this app closes. Only proceed if you trust this device.",
+                title    = stringResource(R.string.copy_seed_title),
+                message  = stringResource(R.string.copy_seed_message),
                 onConfirm = {
                     showCopyWarning = false
                     scope.launch {
@@ -162,14 +160,20 @@ fun SplitResultScreen(
             enabled  = session != null,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Recovery Guide", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.recovery_guide),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         TextButton(
             onClick  = onDone,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Done", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.done),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -197,7 +201,7 @@ private fun ShareCard(index: Int, mnemonic: String) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text  = "Share $index",
+                    text  = stringResource(R.string.share_label_format, index),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

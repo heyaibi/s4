@@ -55,9 +55,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.s4.R
 import com.s4.ui.theme.MonoMeta
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ import com.s4.ui.theme.MonoMeta
 
 /** Screen hero: title + one-line subtitle. */
 @Composable
-fun ScreenHeader(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
+fun ScreenHeader(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = title,
@@ -208,15 +210,15 @@ fun PassphraseField(
         value           = value,
         onValueChange   = onValueChange,
         enabled         = enabled,
-        label           = { Text("Passphrase (optional)") },
-        placeholder     = { Text("BIP-39 passphrase, if your wallet uses one") },
-        supportingText  = { Text("Never stored or split — preserve it separately.") },
+        label           = { Text(stringResource(R.string.passphrase_label)) },
+        placeholder     = { Text(stringResource(R.string.passphrase_placeholder)) },
+        supportingText  = { Text(stringResource(R.string.passphrase_supporting)) },
         singleLine      = true,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon    = {
             TextButton(onClick = onToggleVisible, enabled = enabled) {
                 Text(
-                    text  = if (visible) "Hide" else "Show",
+                    text  = if (visible) stringResource(R.string.hide) else stringResource(R.string.show),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -390,12 +392,12 @@ fun ClipboardRiskDialog(
                 onClick  = onConfirm,
                 modifier = Modifier.testTag("confirmClipboardCopy"),
             ) {
-                Text("Copy anyway")
+                Text(stringResource(R.string.copy_anyway))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         },
     )

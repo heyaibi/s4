@@ -37,9 +37,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.s4.S4HeaderBar
+import com.s4.R
 import com.s4.guide.RecoveryGuide
+import com.s4.ui.components.S4HeaderBar
 import com.s4.ui.theme.MonoMeta
 import kotlinx.coroutines.launch
 
@@ -83,14 +85,13 @@ fun RecoveryGuideScreen(viewModel: SplitViewModel, onDone: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             // ── Header ─────────────────────────────────────────────────────────
-        ScreenHeader(
-            title    = "Recovery Guide",
-            subtitle = "Copy this and write it by hand next to your shares — " +
-                "your beneficiary can recover the wallet with any SLIP-39 + BIP-39 tool, no app needed.",
-        )
+            ScreenHeader(
+                title    = stringResource(R.string.guide_title),
+                subtitle = stringResource(R.string.guide_subtitle),
+            )
 
         // ── Guide text card ────────────────────────────────────────────────
-        SectionCard(eyebrow = "Verbatim guide") {
+        SectionCard(eyebrow = stringResource(R.string.guide_eyebrow)) {
             Text(
                 text     = text,
                 style    = MonoMeta.data,
@@ -107,8 +108,8 @@ fun RecoveryGuideScreen(viewModel: SplitViewModel, onDone: () -> Unit) {
         }
 
         ActionButton(
-            label        = if (copied) "✓  Guide copied" else "Copy guide",
-            loadingLabel = "Copying…",
+            label        = if (copied) stringResource(R.string.guide_copied) else stringResource(R.string.copy_guide),
+            loadingLabel = stringResource(R.string.copying),
             busy         = false,
             onClick      = {
                 // The session-backed guide embeds the wallet's entropy (byte-equivalent
@@ -120,10 +121,8 @@ fun RecoveryGuideScreen(viewModel: SplitViewModel, onDone: () -> Unit) {
 
         if (showCopyWarning) {
             ClipboardRiskDialog(
-                title = "Copy the guide to the clipboard?",
-                message = "This guide embeds the wallet's entropy — byte-equivalent to the seed itself — " +
-                    "and is copied to the system clipboard, where it can be read by other apps (keyboards, " +
-                    "accessibility tools) and persists after this app closes. Only proceed if you trust this device.",
+                title     = stringResource(R.string.copy_guide_title),
+                message   = stringResource(R.string.copy_guide_message),
                 onConfirm = {
                     showCopyWarning = false
                     copyGuide()
@@ -136,7 +135,10 @@ fun RecoveryGuideScreen(viewModel: SplitViewModel, onDone: () -> Unit) {
             onClick  = onDone,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Done", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.done),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -1,3 +1,96 @@
-<resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">S4</string>
+
+    <!-- App bars -->
+    <string name="header_brand_title">Shamir\'s Secret Sharing</string>
+    <string name="header_brand_subtitle">SLIP-39 · offline · open source</string>
+    <string name="nav_split">Split</string>
+    <string name="nav_restore">Restore</string>
+
+    <!-- Common -->
+    <string name="recovery_guide">Recovery Guide</string>
+    <string name="done">Done</string>
+    <!-- Trailing spaces are intentional and preserved via the wrapping quotes. -->
+    <string name="fingerprint_prefix">"Fingerprint: "</string>
+    <string name="fingerprint_with_passphrase_prefix">"Fingerprint (with passphrase): "</string>
+    <string name="hide">Hide</string>
+    <string name="show">Show</string>
+    <string name="copy_anyway">Copy anyway</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Passphrase field -->
+    <string name="passphrase_label">Passphrase (optional)</string>
+    <string name="passphrase_placeholder">BIP-39 passphrase, if your wallet uses one</string>
+    <string name="passphrase_supporting">Never stored or split — preserve it separately.</string>
+
+    <!-- Split screen -->
+    <string name="split_title">Split a wallet</string>
+    <string name="split_subtitle">Turn your seed phrase into N shares. Any T of them restore the wallet — nothing leaves this device.</string>
+    <string name="entropy_label">Entropy (hex)</string>
+    <string name="entropy_placeholder">32 to 64 hex characters, even length</string>
+    <string name="entropy_supporting">16–32 bytes of entropy.</string>
+    <string name="use_entropy_hex">Use entropy hex instead</string>
+    <string name="use_seed_phrase">Use a seed phrase instead</string>
+    <string name="seed_phrase_label">Seed phrase</string>
+    <string name="seed_phrase_placeholder">Start typing — suggestions appear below</string>
+    <string name="passphrase_details">Passphrase details</string>
+    <string name="passphrase_fp_note">Note this fingerprint — restore must reproduce it. It is computed only from your seed + passphrase.</string>
+    <string name="passphrase_not_sharded">The passphrase is NOT stored in the shares — preserve it separately.</string>
+    <string name="passphrase_location_label">Where are you keeping the passphrase?</string>
+    <string name="passphrase_location_placeholder">Optional — filled into your Recovery Guide</string>
+    <string name="config_eyebrow">Configuration</string>
+    <string name="total_shares">Total shares</string>
+    <string name="restore_threshold">Restore threshold</string>
+    <string name="any_of_shares" tools:ignore="PluralsCandidate">Any %1$d of the %2$d shares will restore the wallet.</string>
+    <string name="split_into" tools:ignore="PluralsCandidate">Split into %1$d shares</string>
+    <string name="splitting">Splitting…</string>
+
+    <!-- Restore screen -->
+    <string name="restore_title">Restore a wallet</string>
+    <string name="restore_subtitle">Paste your seed shares (one SLIP-39 share per line) to reconstruct the original seed phrase.</string>
+    <string name="shares_label">Seed shares, one per line</string>
+    <string name="shares_placeholder">academic acid acne …\nafterlife again agency …</string>
+    <string name="recovered_eyebrow">Recovered seed phrase</string>
+    <string name="fingerprint_verify">This fingerprint is derived from your seed — confirm it matches the one noted at split time.</string>
+    <string name="fingerprint_verify_passphrase">This fingerprint is derived from your seed + passphrase — confirm it matches the one noted at split time.</string>
+    <string name="restore_wallet">Restore wallet</string>
+    <string name="restoring">Restoring…</string>
+    <string name="restore_err_not_enough">Not enough shares: you need at least the split threshold, and each share must be correct.</string>
+    <string name="restore_err_mismatch">These shares are not from the same wallet (mismatched identifiers).</string>
+    <string name="restore_err_checksum">Checksum failed: one or more shares are incorrect (a wrong or corrupted word).</string>
+    <string name="restore_err_too_few_words">A share has too few words to be a valid SLIP-39 share.</string>
+    <string name="restore_err_fallback">restore failed</string>
+    <string name="restore_err_invalid_input">invalid input</string>
+
+    <!-- Results screen -->
+    <string name="results_title">Seed shares</string>
+    <string name="results_subtitle_format" tools:ignore="PluralsCandidate">Keep each share in a separate, secure location. Any %1$d of %2$d restore the wallet. Write them down — S4 never stores them.</string>
+    <string name="results_subtitle_placeholder">Keep each share in a separate, secure location. Write them down — S4 never stores them.</string>
+    <string name="passphrase_warning">This wallet uses a BIP-39 passphrase. The shares recover only the seed words — the passphrase must be kept separately.</string>
+    <string name="share_label_format">Share %1$d</string>
+    <string name="copy_all">Copy all</string>
+    <string name="copied">Copied</string>
+    <string name="copying">Copying…</string>
+    <string name="copy_seed_title">Copy the full seed to the clipboard?</string>
+    <string name="copy_seed_message">This copies every share — the complete seed — to the system clipboard, where it can be read by other apps (keyboards, accessibility tools) and persists after this app closes. Only proceed if you trust this device.</string>
+
+    <!-- Recovery guide screen -->
+    <string name="guide_title">Recovery Guide</string>
+    <string name="guide_subtitle">Copy this and write it by hand next to your shares — your beneficiary can recover the wallet with any SLIP-39 + BIP-39 tool, no app needed.</string>
+    <string name="guide_eyebrow">Verbatim guide</string>
+    <string name="copy_guide">Copy guide</string>
+    <string name="guide_copied">✓  Guide copied</string>
+    <string name="copy_guide_title">Copy the guide to the clipboard?</string>
+    <string name="copy_guide_message">This guide embeds the wallet\'s entropy — byte-equivalent to the seed itself — and is copied to the system clipboard, where it can be read by other apps (keyboards, accessibility tools) and persists after this app closes. Only proceed if you trust this device.</string>
+
+    <!-- Word counters -->
+    <plurals name="words_typed">
+        <item quantity="one">%d word so far</item>
+        <item quantity="other">%d words so far</item>
+    </plurals>
+    <plurals name="shares_typed">
+        <item quantity="one">%d word typed — SLIP-39 shares are 20–33 words each</item>
+        <item quantity="other">%d words typed — SLIP-39 shares are 20–33 words each</item>
+    </plurals>
 </resources>

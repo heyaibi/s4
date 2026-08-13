@@ -43,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
@@ -51,10 +53,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.s4.S4HeaderBar
+import com.s4.R
 import com.s4.bip39.Bip39
 import com.s4.crypto.ShareCodec
 import com.s4.model.SplitParams
+import com.s4.ui.components.S4HeaderBar
 import com.s4.ui.theme.MonoMeta
 import com.s4.ui.theme.RobotoMono
 import kotlin.math.roundToInt
@@ -110,184 +113,244 @@ fun SplitScreen(viewModel: SplitViewModel, onSplitComplete: () -> Unit, onOpenGu
                 .padding(horizontal = 20.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
-            // ── Header ─────────────────────────────────────────────────────────
             ScreenHeader(
-                title    = "Split a wallet",
-                subtitle = "Turn your seed phrase into N shares. Any T of them restore the wallet — nothing leaves this device.",
+                title    = stringResource(R.string.split_title),
+                subtitle = stringResource(R.string.split_subtitle),
             )
 
-        // ── Secret input ───────────────────────────────────────────────────
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            when (inputMode) {
-                SecretInputMode.MNEMONIC -> MnemonicInput(
-                    value          = mnemonic,
-                    onValueChange  = { mnemonic = it },
-                    showError      = showError,
-                    validationError = validationError,
-                )
+            SecretInputSection(
+                inputMode         = inputMode,
+                mnemonic          = mnemonic,
+                entropyHex        = entropyHex,
+                showError         = showError,
+                validationError   = validationError,
+                onInputModeChange = { inputModeName = it.name },
+                onMnemonicChange  = { mnemonic = it },
+                onEntropyHexChange = { entropyHex = it },
+            )
 
-                SecretInputMode.ENTROPY_HEX -> OutlinedTextField(
-                    value       = entropyHex,
-                    onValueChange = { entropyHex = it },
-                    label       = { Text("Entropy (hex)") },
-                    placeholder = { Text("32 to 64 hex characters, even length") },
-                    supportingText = {
-                        Text(if (showError) validationError.orEmpty() else "16–32 bytes of entropy.")
-                    },
-                    isError    = showError,
-                    singleLine = true,
-                    shape      = MaterialTheme.shapes.small,
-                    colors     = s4TextFieldColors(),
-                    modifier   = Modifier.fillMaxWidth(),
+            PassphraseField(
+                value           = passphrase,
+                visible         = passphraseVisible,
+                onValueChange   = { passphrase = it },
+                onToggleVisible = { passphraseVisible = !passphraseVisible },
+                modifier        = Modifier.fillMaxWidth(),
+            )
+
+            if (passphrase.isNotEmpty()) {
+                PassphraseDetailSection(
+                    fingerprint               = fingerprint,
+                    passphraseLocation        = passphraseLocation,
+                    onPassphraseLocationChange = { passphraseLocation = it },
                 )
             }
 
-            // Toggle input mode — subtle TextButton aligned end
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(
-                    onClick  = {
-                        inputModeName = if (inputMode == SecretInputMode.MNEMONIC)
-                            SecretInputMode.ENTROPY_HEX.name
-                        else
-                            SecretInputMode.MNEMONIC.name
-                    },
-                    modifier = Modifier.testTag("toggleInputMode"),
-                ) {
-                    Text(
-                        text  = if (inputMode == SecretInputMode.MNEMONIC)
-                            "Use entropy hex instead"
-                        else
-                            "Use a seed phrase instead",
-                        style = MonoMeta.value,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+            ShareConfigSection(
+                shareCount        = shareCount,
+                threshold         = threshold,
+                onShareCountChange = { value ->
+                    shareCount = value.roundToInt()
+                    if (threshold > shareCount) threshold = shareCount
+                },
+                onThresholdChange = { value -> threshold = value.roundToInt() },
+            )
 
-        // ── Passphrase ─────────────────────────────────────────────────────
-        PassphraseField(
-            value           = passphrase,
-            visible         = passphraseVisible,
-            onValueChange   = { passphrase = it },
-            onToggleVisible = { passphraseVisible = !passphraseVisible },
-            modifier        = Modifier.fillMaxWidth(),
-        )
+            splitError?.let { ErrorBanner(it) }
 
-        // ── Passphrase detail card (only when passphrase is set) ───────────
-        if (passphrase.isNotEmpty()) {
-            SectionCard(eyebrow = "Passphrase details") {
-                fingerprint?.let { fp ->
-                    Text(
-                        text = buildAnnotatedString {
-                            append("Fingerprint: ")
-                            withStyle(
-                                SpanStyle(
-                                    fontFamily    = RobotoMono,
-                                    fontWeight    = FontWeight.Bold,
-                                    color         = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 1.0.sp,
-                                ),
-                            ) { append(fp) }
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+            ActionButton(
+                label        = stringResource(R.string.split_into, shareCount),
+                loadingLabel = stringResource(R.string.splitting),
+                busy         = busy,
+                enabled      = validationError == null,
+                onClick      = {
+                    if (validationError == null) {
+                        val words = decodeWords(inputMode, mnemonic.text, entropyHex)
+                        viewModel.split(
+                            params             = SplitParams(threshold, shareCount),
+                            words              = words,
+                            passphrase         = passphrase,
+                            passphraseLocation = passphraseLocation,
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("confirmButton"),
+            )
+
+            TextButton(
+                onClick  = onOpenGuide,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("openGuideSplit"),
+            ) {
                 Text(
-                    "Note this fingerprint — restore must reproduce it. It is computed only from your seed + passphrase.",
-                    style = MaterialTheme.typography.bodySmall,
+                    stringResource(R.string.recovery_guide),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    "The passphrase is NOT stored in the shares — preserve it separately.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                OutlinedTextField(
-                    value           = passphraseLocation,
-                    onValueChange   = { passphraseLocation = it },
-                    label           = { Text("Where are you keeping the passphrase?") },
-                    placeholder     = { Text("Optional — filled into your Recovery Guide") },
-                    singleLine      = true,
-                    shape           = MaterialTheme.shapes.small,
-                    colors          = s4TextFieldColors(),
-                    modifier        = Modifier.fillMaxWidth(),
-                )
             }
-        }
-
-        // ── Share configuration card ───────────────────────────────────────
-        SectionCard(eyebrow = "Configuration") {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SliderHeading("Total shares", shareCount)
-                Slider(
-                    value          = shareCount.toFloat(),
-                    onValueChange  = {
-                        shareCount = it.roundToInt()
-                        if (threshold > shareCount) threshold = shareCount
-                    },
-                    valueRange = 2f..SplitParams.MAX_SHARES.toFloat(),
-                    steps      = SplitParams.MAX_SHARES - 3,
-                    colors     = s4SliderColors(),
-                    modifier   = Modifier.testTag("shareCount"),
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SliderHeading("Restore threshold", threshold)
-                Slider(
-                    value         = threshold.toFloat(),
-                    onValueChange = { threshold = it.roundToInt() },
-                    valueRange    = 1f..shareCount.toFloat(),
-                    steps         = (shareCount - 2).coerceAtLeast(0),
-                    colors        = s4SliderColors(),
-                    modifier      = Modifier.testTag("threshold"),
-                )
-            }
-            Text(
-                "Any $threshold of the $shareCount shares will restore the wallet.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        // ── Error + CTA ────────────────────────────────────────────────────
-        splitError?.let { ErrorBanner(it) }
-
-        ActionButton(
-            label        = "Split into $shareCount shares",
-            loadingLabel = "Splitting…",
-            busy         = busy,
-            enabled      = validationError == null,
-            onClick      = {
-                if (validationError == null) {
-                    val words = decodeWords(inputMode, mnemonic.text, entropyHex)
-                    viewModel.split(
-                        params             = SplitParams(threshold, shareCount),
-                        words              = words,
-                        passphrase         = passphrase,
-                        passphraseLocation = passphraseLocation,
-                    )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("confirmButton"),
-        )
-
-        TextButton(
-            onClick  = onOpenGuide,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("openGuideSplit"),
-        ) {
-            Text(
-                "Recovery Guide",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Secret input section (mnemonic / entropy hex + mode toggle)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SecretInputSection(
+    inputMode: SecretInputMode,
+    mnemonic: TextFieldValue,
+    entropyHex: String,
+    showError: Boolean,
+    validationError: String?,
+    onInputModeChange: (SecretInputMode) -> Unit,
+    onMnemonicChange: (TextFieldValue) -> Unit,
+    onEntropyHexChange: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        when (inputMode) {
+            SecretInputMode.MNEMONIC -> MnemonicInput(
+                value          = mnemonic,
+                onValueChange  = onMnemonicChange,
+                showError      = showError,
+                validationError = validationError,
+            )
+
+            SecretInputMode.ENTROPY_HEX -> OutlinedTextField(
+                value         = entropyHex,
+                onValueChange = onEntropyHexChange,
+                label         = { Text(stringResource(R.string.entropy_label)) },
+                placeholder   = { Text(stringResource(R.string.entropy_placeholder)) },
+                supportingText = {
+                    Text(
+                        if (showError) validationError.orEmpty()
+                        else stringResource(R.string.entropy_supporting)
+                    )
+                },
+                isError    = showError,
+                singleLine = true,
+                shape      = MaterialTheme.shapes.small,
+                colors     = s4TextFieldColors(),
+                modifier   = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(
+                onClick = {
+                    onInputModeChange(
+                        if (inputMode == SecretInputMode.MNEMONIC) SecretInputMode.ENTROPY_HEX
+                        else SecretInputMode.MNEMONIC
+                    )
+                },
+                modifier = Modifier.testTag("toggleInputMode"),
+            ) {
+                Text(
+                    text = stringResource(
+                        if (inputMode == SecretInputMode.MNEMONIC) R.string.use_entropy_hex
+                        else R.string.use_seed_phrase
+                    ),
+                    style = MonoMeta.value,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Passphrase detail card
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PassphraseDetailSection(
+    fingerprint: String?,
+    passphraseLocation: String,
+    onPassphraseLocationChange: (String) -> Unit,
+) {
+    val fingerprintPrefix = stringResource(R.string.fingerprint_prefix)
+    SectionCard(eyebrow = stringResource(R.string.passphrase_details)) {
+        fingerprint?.let { fp ->
+            Text(
+                text = buildAnnotatedString {
+                    append(fingerprintPrefix)
+                    withStyle(
+                        SpanStyle(
+                            fontFamily    = RobotoMono,
+                            fontWeight    = FontWeight.Bold,
+                            color         = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.0.sp,
+                        ),
+                    ) { append(fp) }
+                },
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(
+            stringResource(R.string.passphrase_fp_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            stringResource(R.string.passphrase_not_sharded),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        OutlinedTextField(
+            value           = passphraseLocation,
+            onValueChange   = onPassphraseLocationChange,
+            label           = { Text(stringResource(R.string.passphrase_location_label)) },
+            placeholder     = { Text(stringResource(R.string.passphrase_location_placeholder)) },
+            singleLine      = true,
+            shape           = MaterialTheme.shapes.small,
+            colors          = s4TextFieldColors(),
+            modifier        = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Share configuration card (T/N sliders)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ShareConfigSection(
+    shareCount: Int,
+    threshold: Int,
+    onShareCountChange: (Float) -> Unit,
+    onThresholdChange: (Float) -> Unit,
+) {
+    SectionCard(eyebrow = stringResource(R.string.config_eyebrow)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SliderHeading(stringResource(R.string.total_shares), shareCount)
+            Slider(
+                value          = shareCount.toFloat(),
+                onValueChange  = onShareCountChange,
+                valueRange = 2f..SplitParams.MAX_SHARES.toFloat(),
+                steps      = SplitParams.MAX_SHARES - 3,
+                colors     = s4SliderColors(),
+                modifier   = Modifier.testTag("shareCount"),
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SliderHeading(stringResource(R.string.restore_threshold), threshold)
+            Slider(
+                value         = threshold.toFloat(),
+                onValueChange = onThresholdChange,
+                valueRange    = 1f..shareCount.toFloat(),
+                steps         = (shareCount - 2).coerceAtLeast(0),
+                colors        = s4SliderColors(),
+                modifier      = Modifier.testTag("threshold"),
+            )
+        }
+        Text(
+            stringResource(R.string.any_of_shares, threshold, shareCount),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -316,12 +379,12 @@ private fun MnemonicInput(
         OutlinedTextField(
             value          = value,
             onValueChange  = onValueChange,
-            label          = { Text("Seed phrase") },
-            placeholder    = { Text("Start typing — suggestions appear below") },
+            label          = { Text(stringResource(R.string.seed_phrase_label)) },
+            placeholder    = { Text(stringResource(R.string.seed_phrase_placeholder)) },
             supportingText = {
                 Text(
                     if (showError) validationError.orEmpty()
-                    else "$typedCount word${if (typedCount == 1) "" else "s"} so far"
+                    else pluralStringResource(R.plurals.words_typed, typedCount, typedCount)
                 )
             },
             isError  = showError,
