@@ -320,6 +320,48 @@ run_defensive adb shell cmd connectivity airplane-mode enable
 run_defensive adb shell settings put global wifi_scan_always_enabled 0
 run_defensive adb shell settings put global ble_scan_always_enabled 0
 
+# ---------------------------------------------------------
+# 7. MOTOROLA PANEL SWITCH (MODEL-SPECIFIC, IDEMPOTENT)
+# ---------------------------------------------------------
+# Motorola's "Allow control center access on lock screen" switch
+# (Settings → Home & lock screen → Control center) leaves quick settings
+# reachable on the lock screen before credentials are entered. It must be
+# OFF so nothing in the control center (radios, airplane mode, etc.) can
+# be toggled from the lock screen. Motorola keeps this setting out of the
+# public SettingsProvider namespace — it has no ADB-accessible key on
+# unrooted devices — so the only way to flip it is through the UI. On some
+# Motorola models (e.g. Moto G45) the switch lives in a SystemUI settings
+# activity rather than the Settings app, so open that activity directly
+# and tap the switch off if it is enabled. Coordinates target the G45's
+# default layout; harmless no-op on other models. Other vendors may have
+# similar lock-screen quick-settings keys; the same pattern (match the
+# model, open the vendor settings activity, dump, toggle) can be extended
+# per phone.
+MOTO_MODEL=$(adb shell getprop ro.product.model 2>/dev/null)
+if [[ "$MOTO_MODEL" =~ [gG]45 ]]; then
+    echo ""
+    echo "📲 $MOTO_MODEL detected — checking control center lock screen access..."
+    if adb shell am start -n com.android.systemui/com.motorola.systemui.prc.settings.PanelViewSettingActivity >/dev/null 2>&1; then
+        sleep 0.8
+        # Only trust the dump if it was written just now: a failed dump would
+        # leave a stale /sdcard/ui.xml behind and grep could act on old state.
+        if adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 \
+           && PANEL_STATE=$(adb shell cat /sdcard/ui.xml 2>/dev/null | grep -o 'id/switch_widget[^>]*checked="true"'); then
+            if adb shell input tap 618 1387; then
+                echo "   ✅ Control center lock screen access was ENABLED — toggled OFF."
+            else
+                echo "   ⚠️  Control center lock screen access was ENABLED but the tap failed."
+            fi
+        else
+            echo "   ⏭️  Control center lock screen access already DISABLED or not found — no action taken."
+        fi
+    else
+        echo "   ⚠️  Could not open the control center settings activity — skipping."
+    fi
+else
+    echo "   ⏭️  Not a Moto G45 — skipping control center lock screen check."
+fi
+
 echo ""
 if [ "$ANY_FAILURE" -eq 1 ]; then
     echo "⚠️  Completed with errors — see the install summary above."
