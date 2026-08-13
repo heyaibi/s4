@@ -3,6 +3,19 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Checksum-pinned, reproducible builds: dependency coordinates are locked in
+// gradle.lockfile and cannot drift to new versions without a deliberate
+// `./gradlew --write-locks` + review. Regenerate after any dependency change.
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+// App identity/version — single source of truth in gradle.properties so a
+// release bump touches one file instead of these literals.
+val s4ApplicationId = providers.gradleProperty("S4_APPLICATION_ID")
+val s4VersionCode = providers.gradleProperty("S4_VERSION_CODE")
+val s4VersionName = providers.gradleProperty("S4_VERSION_NAME")
+
 val hostJniDir = layout.buildDirectory.dir("host-jni")
 
 // Builds a host (macOS) dylib of slip39_jni from the vendored sources so the
@@ -24,11 +37,11 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.s4"
+        applicationId = s4ApplicationId.get()
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = s4VersionCode.get().toInt()
+        versionName = s4VersionName.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -56,6 +69,12 @@ android {
 
     buildTypes {
         release {
+            // Deliberately unminified (R8 off). The app's crypto is vendored C
+            // invoked through thin JNI facades by method name; R8 shrinking and
+            // unused-code removal can silently break those native bindings. With
+            // no ad/analytics SDKs and a ~10 MB APK, shrinking buys nothing.
+            // If R8 is ever enabled, it must be verified end-to-end against the
+            // instrumented SLIP-39 tests on every shipped ABI.
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
             proguardFiles(

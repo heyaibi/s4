@@ -53,6 +53,9 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug
 
+      - name: Assemble release APK (unsigned on CI)
+        run: ./gradlew :app:assembleRelease
+
   instrumented:
     name: Instrumented tests (emulator)
     runs-on: ubuntu-latest

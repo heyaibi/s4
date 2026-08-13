@@ -11,6 +11,10 @@ JAVA_HOME   ?= $(shell test -d "/Applications/Android Studio.app/Contents/jbr/Co
 SDK         ?= $(shell cat local.properties 2>/dev/null | sed -n 's/^sdk\.dir=//p' || echo "$$ANDROID_HOME")
 ADB         ?= $(SDK)/platform-tools/adb
 EMULATOR    ?= $(SDK)/emulator/emulator
+# Newest installed build-tools (sorts last); aapt/apksigner are not on PATH.
+BUILD_TOOLS ?= $(shell ls -d "$(SDK)"/build-tools/* 2>/dev/null | sort -V | tail -1)
+AAPT        ?= $(BUILD_TOOLS)/aapt
+APKSIGNER   ?= $(BUILD_TOOLS)/apksigner
 AVD         ?= s4_dev
 # Script that boots the emulator (and waits for it) when no device is connected.
 EMULATOR_SCRIPT ?= tools/start-emulator.sh
@@ -25,13 +29,14 @@ DEVICE      ?= $(or \
 
 export JAVA_HOME
 
-.PHONY: help build release unit android-test ui-test lint install update launch verify \
+.PHONY: help build release verify-release unit android-test ui-test lint install update launch verify \
         test-report clean screens screens-dark logcat emulator emulator-start emulator-stop
 
 help:
 	@echo "S4 development commands"
 	@echo "  make build            assemble the debug APK"
 	@echo "  make release          build the signed release APK and print its SHA-256"
+	@echo "  make verify-release   build release APK and verify permissions + signature"
 	@echo "  make unit             run JVM unit tests (real native code via host dylib)"
 	@echo "  make android-test      run all instrumented tests on a connected device/emulator"
 	@echo "  make ui-test           run only the Compose UI flow tests (SplitRestoreFlowTest)"
@@ -58,6 +63,14 @@ release:
 	$(GRADLE) :app:assembleRelease
 	@echo "Release APK: $(APK_RELEASE)"
 	@shasum -a 256 "$(APK_RELEASE)"
+
+# Build the release APK, then gate it: no network permissions and a valid
+# signature from the release keystore. Requires build-tools for aapt/apksigner.
+verify-release: release
+	@echo "== permissions =="
+	@$(AAPT) dump permissions "$(APK_RELEASE)"
+	@echo "== signature =="
+	@$(APKSIGNER) verify --print-certs "$(APK_RELEASE)"
 
 unit:
 	$(GRADLE) :app:testDebugUnitTest
