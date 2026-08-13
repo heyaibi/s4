@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Dhizuku v2.12",
+    "pkg": "com.rosan.dhizuku",
+    "url": "https://github.com/iamr0s/Dhizuku/releases/download/v2.12.0/Dhizuku_v2.12.0.apk",
+    "checksum": "sha256:243ce26a2dad20e660452072e8891303870b85f7e9bd18c5db65f71dbe12027c"
+  },
+  {
+    "name": "Android AntiForensic Tools v2.0.2",
+    "pkg": "com.oasisfeng.island",
+    "url": "https://github.com/bakad3v/Android-AntiForensic-Tools/releases/download/v2.0.2/AFTools_island_USUAL.apk",
+    "checksum": "sha256:f99787809822f354dc9ce6063ccc6f87e346675d9d2ac25e6b7edd81f317a00c"
+  },
+  {
+    "name": "Airgap Vault v3.34.4",
+    "pkg": "it.airgap.vault",
+    "url": "https://github.com/airgap-it/airgap-vault/releases/download/v3.34.4/airgap-vault-77820.apk",
+    "checksum": "sha256:0ea582ef13866781b1c9d1585a5f0286d1d7590a25a261e1f6a74d03cbbaf96d"
+  },
+  {
+    "name": "S4 v0.1.0",
+    "pkg": "com.s4",
+    "url": "",
+    "checksum": ""
+  }
+]

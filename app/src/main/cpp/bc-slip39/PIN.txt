@@ -1,0 +1,13 @@
+Vendored from upstream BlockchainCommons repos (all BSD-2-Clause-Patent unless
+noted; pbkdf2.c/h are MIT, from the trezor-crypto lineage retained by
+bc-crypto-base).
+
+Pinned commits (verify vectors against these in Phase 2):
+
+  bc-slip39        f6f489e508ade61fd77f9b075bbb740b1b038300   (master, 2021-11-23)
+  bc-shamir        cc574cebb6cc201168df42fb09dfa4d99442c548   (master; == vendored)
+  bc-crypto-base   b390df8b986944a13cccdde758f4e567fb408d56   (master; == vendored)
+
+bc-slip39 is deprecated upstream (BC now pushes bc-sskr); we vendor it pinned
+because it targets bc-shamir's split_secret/recover_secret API and verifies
+cleanly against the trezor SLIP-39 vectors.
