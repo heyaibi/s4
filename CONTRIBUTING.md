@@ -38,6 +38,21 @@ Thanks for your interest. S4 is a personal, security-critical tool: it handles c
 
 The release APK is signed with a keystore whose credentials live in `~/.gradle/gradle.properties` (`S4_RELEASE_STORE_FILE`, `S4_RELEASE_STORE_PASSWORD`, `S4_RELEASE_KEY_ALIAS`, `S4_RELEASE_KEY_PASSWORD`) — never in the repo. Build it with `make release` (or `./gradlew :app:assembleRelease`), which produces a signed, unminified APK at `app/build/outputs/apk/release/app-release.apk` and prints its SHA-256 for the `airgap/apps.json` entry. Back the keystore up offline: Android apps are permanently bound to their signing key, so losing it makes future updates impossible.
 
+## Versioning
+
+S4 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Both values live in `gradle.properties` (`S4_VERSION_NAME`, `S4_VERSION_CODE`) and are read by `app/build.gradle.kts` — bump them there, never in the build file.
+
+- **`S4_VERSION_NAME`** (what users see) is `MAJOR.MINOR.PATCH`. Before 1.0.0, breaking changes bump the minor (the ecosystem treats `0.x` minors as potentially breaking). After 1.0.0: breaking changes bump the major, new backward-compatible behavior the minor, bug fixes the patch.
+- **`S4_VERSION_CODE`** (what Android uses to order updates) is a positive integer that starts at 1 and increases by exactly 1 on every release, whatever the `versionName` delta. Never reuse or skip it — Android refuses to install an APK whose `versionCode` is lower than the installed one, so a reused code silently blocks upgrades.
+
+Every release:
+
+1. Bump `S4_VERSION_CODE` (always) and `S4_VERSION_NAME` (when something user-visible changed) in `gradle.properties`.
+2. Build with `make verify-release`, record the printed SHA-256, and smoke-test the signed APK on the target phone.
+3. Update the S4 entry in `airgap/apps.json` — the version name, the release-asset URL, and the SHA-256 checksum — so provisioning installs the exact artifact.
+4. Tag the release commit `v<versionName>` and push the tag.
+5. Write the `CHANGELOG.md` entry for the version (Keep a Changelog format, `Unreleased` section at the top) just before the release, and create a GitHub Release for the tag with the APK, its SHA-256, and that entry.
+
 ## Code style
 
 - Kotlin, following the existing conventions: Compose + Material 3, `MonoMeta`/`RobotoMono` for data and fingerprints, `s4TextFieldColors()` for fields, `SectionCard`/`ActionButton`/`ErrorBanner` for structure.

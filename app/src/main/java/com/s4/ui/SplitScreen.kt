@@ -232,7 +232,9 @@ private fun SecretInputSection(
                 singleLine = true,
                 shape      = MaterialTheme.shapes.small,
                 colors     = s4TextFieldColors(),
-                modifier   = Modifier.fillMaxWidth(),
+                modifier   = Modifier
+                    .fillMaxWidth()
+                    .testTag("entropyInput"),
             )
         }
 

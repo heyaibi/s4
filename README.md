@@ -6,6 +6,20 @@ This tool is built for one specific deployment: a dedicated, air-gapped Motorola
 
 Status: **implemented and verified.** 91 JVM unit tests and 35 instrumented tests pass against the real native crypto, and lint is clean. The non-technical user manual lives in `about.md`.
 
+## Screenshots
+
+The split screen: enter a seed phrase (or raw entropy), add an optional BIP-39 passphrase, and pick how many shares to create. The fingerprint preview lets you confirm the passphrase before anything is split.
+
+Light theme:
+
+<img src="art/screens/screen-light.png" alt="S4 split screen — light theme" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Dark theme:
+
+<img src="art/screens/screen-dark.png" alt="S4 split screen — dark theme" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Regenerate them with `make screens` and `make screens-dark` (the app's FLAG_SECURE blocks `adb screencap`, so these use the emulator's own screenshot instead). A step-by-step, picture-by-picture walkthrough of every screen lives in `user-guide.md`.
+
 ## The setup
 
 The phone is provisioned once by `airgap/airgap.sh`, run from a laptop over ADB. The script installs the apps listed in `airgap/apps.json` with SHA-256 checksum verification, sets **Dhizuku** as Device Owner, force-stops and disables or uninstalls bloatware (`airgap/packages.txt`, `airgap/uninstall.txt`), kills radios (Wi-Fi, Bluetooth, data, NFC) and enables airplane mode, and disables background scanning.
@@ -125,8 +139,8 @@ You can also call the wrapper directly, e.g. `./gradlew :app:assembleDebug` or `
 ## Documentation
 
 - `about.md` — the user manual: who the app is for, what it solves, and how to use it in plain language.
+- `user-guide.md` — a step-by-step, screenshot-driven walkthrough of every screen.
 - `airgap/README.md` — how to prepare the laptop, the phone, and the provisioning script.
-- `issues/` — dated engineering reports from the verification passes.
 
 ## License
 
