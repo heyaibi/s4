@@ -1,3 +1,6 @@
+package:com.google.android.apps.tachyon
+package:com.google.android.apps.youtube.music
+package:com.google.android.youtube
 package:com.google.android.gms.location.history
 package:com.google.android.gms
 package:com.google.android.gm

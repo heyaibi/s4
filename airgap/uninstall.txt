@@ -1,6 +1,4 @@
 package:com.facebook.appmanager
 package:com.facebook.system
 package:com.facebook.services
-package:com.google.android.youtube
-package:com.google.android.apps.youtube.music
-package:com.google.android.apps.tachyon
+package:com.facebook.katana
