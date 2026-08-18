@@ -22,5 +22,11 @@
     "pkg": "com.s4",
     "url": "https://github.com/heyaibi/s4/releases/download/v0.1.0/s4-v0.1.0.apk",
     "checksum": "sha256:e0a0c685608e0c93831d1e250d73f09aa71717d9c7290a90dc8da637380b733c"
+  },
+  {
+    "name": "Airgate v0.1.0",
+    "pkg": "com.airgate",
+    "url": "https://github.com/heyaibi/airgate/releases/download/v0.1.0/airgate-v0.1.0-release.apk",
+    "checksum": "sha256:ebe1910f638ab87dba49c53a6424ab81a19f5979911dec43bd7a92d824e5870e"
   }
 ]
