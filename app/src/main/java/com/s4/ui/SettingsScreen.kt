@@ -28,26 +28,50 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.s4.data.repository.PinRepository
+import com.s4.data.repository.SessionRepository
+import com.s4.model.StampingSession
 import com.s4.ui.components.S4HeaderBar
+import com.s4.ui.theme.RobotoMono
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(
     pinRepository: PinRepository,
+    sessionRepository: SessionRepository,
+    onOpenSession: (String) -> Unit,
     onManagePin: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val loadSessions = {
+        sessionRepository.codes().mapNotNull { code ->
+            sessionRepository.load(code)?.let { code to it }
+        }
+    }
+    var sessions by remember { mutableStateOf(loadSessions()) }
+    var wipeCode by remember { mutableStateOf<String?>(null) }
+
     Scaffold(
         topBar = { S4HeaderBar(showSettings = false, onSettingsClick = {}) },
     ) { innerPadding ->
@@ -112,7 +136,33 @@ fun SettingsScreen(
                 )
             }
 
-            androidx.compose.material3.TextButton(
+            SectionCard(eyebrow = "Saved stamping sessions") {
+                if (sessions.isEmpty()) {
+                    Text(
+                        text = "No saved sessions. Save a split for metal stamping from the results screen.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    sessions.forEach { (code, session) ->
+                        SessionRow(
+                            code = code,
+                            session = session,
+                            onOpen = { onOpenSession(code) },
+                            onErase = { wipeCode = code },
+                        )
+                    }
+                    Text(
+                        text = "Tap a session to view its shares. Each session is erased automatically 7 days after saving. Erasing one here is permanent.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+
+            TextButton(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -120,4 +170,84 @@ fun SettingsScreen(
             }
         }
     }
+
+    if (wipeCode != null) {
+        AlertDialog(
+            onDismissRequest = { wipeCode = null },
+            title = { Text("Erase this session?") },
+            text = { Text("This permanently deletes the shares of session $wipeCode from this phone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        sessionRepository.delete(wipeCode!!)
+                        sessions = loadSessions()
+                        wipeCode = null
+                    },
+                    modifier = Modifier.testTag("confirmEraseSession"),
+                ) {
+                    Text("Erase")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { wipeCode = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
+
+/** One saved stamping session: its paper code, T/N, expiry date, and actions. */
+@Composable
+private fun SessionRow(
+    code: String,
+    session: StampingSession,
+    onOpen: () -> Unit,
+    onErase: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onOpen),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = code,
+                style = MaterialTheme.typography.titleSmall,
+                fontFamily = RobotoMono,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "any ${session.threshold} of ${session.shareCount} shares",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Expires ${expiryDate(session)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+        }
+        TextButton(onClick = onOpen) {
+            Text("Open", color = MaterialTheme.colorScheme.primary)
+        }
+        TextButton(onClick = onErase) {
+            Text("Erase", color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+private val expiryFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
+
+private fun expiryDate(session: StampingSession): String =
+    Instant.ofEpochMilli(session.createdAt + SessionRepository.EXPIRE_AFTER_MILLIS)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+        .format(expiryFormatter)

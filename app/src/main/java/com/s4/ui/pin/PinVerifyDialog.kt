@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -113,7 +114,9 @@ fun PinVerifyDialog(
                         supportingText = if (errorMessage.isNotEmpty()) {
                             { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
                         } else null,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("pinVerifyInput"),
                     )
                 }
             }
@@ -162,7 +165,9 @@ fun PinVerifyDialog(
                     }
                 },
                 enabled = !isLocked && !isVerifying,
-                modifier = Modifier.height(46.dp),
+                modifier = Modifier
+                    .height(46.dp)
+                    .testTag("pinVerifyConfirm"),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

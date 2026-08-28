@@ -85,6 +85,35 @@
     <string name="copy_guide_title">Copy the guide to the clipboard?</string>
     <string name="copy_guide_message">This guide embeds the wallet\'s entropy — byte-equivalent to the seed itself — and is copied to the system clipboard, where it can be read by other apps (keyboards, accessibility tools) and persists after this app closes. Only proceed if you trust this device.</string>
 
+    <!-- Stamping sessions: save -->
+    <string name="save_for_stamping">Save for stamping</string>
+    <string name="saving">Saving…</string>
+    <string name="saved_session_eyebrow">Stamping session</string>
+    <string name="saved_code_label">Your stamping code</string>
+    <string name="saved_code_hint">Write this code on paper and keep it with your metal plates — you type it back in to resume stamping.</string>
+    <string name="saved_expiry_note">Saved sessions are erased from this phone 7 days after saving.</string>
+    <string name="save_pin_title">Confirm your PIN</string>
+    <string name="save_pin_description">Enter your PIN to save these shares to encrypted storage on this phone.</string>
+    <string name="save_failed">Could not save the session. Please try again.</string>
+
+    <!-- Stamping sessions: done stamping -->
+    <string name="done_stamping">Done stamping</string>
+    <string name="done_stamping_confirm_title">Finish stamping?</string>
+    <string name="done_stamping_confirm_message">This erases the saved session %1$s from this phone. The shares will no longer be recoverable in this app — make sure every plate is finished first.</string>
+    <string name="erase">Erase</string>
+
+    <!-- Stamping sessions: resume -->
+    <string name="resume">Resume</string>
+    <string name="resume_dialog_title">Resume a stamped session</string>
+    <string name="resume_code_label">Stamping code</string>
+    <string name="resume_code_placeholder">e.g. X7K2M9</string>
+    <string name="resume_submit">Resume</string>
+    <string name="resuming">Resuming…</string>
+    <string name="resume_pin_title">Confirm your PIN</string>
+    <string name="resume_pin_description">Enter your PIN to unlock this saved session.</string>
+    <string name="resume_err_not_found">No saved session matches this code. Check what you wrote down.</string>
+    <string name="resume_err_format">Codes are 6 characters (letters and digits, no 0, 1, I, or O).</string>
+
     <!-- Word counters -->
     <plurals name="words_typed">
         <item quantity="one">%d word so far</item>

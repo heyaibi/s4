@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -38,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -56,17 +60,26 @@ import androidx.compose.ui.unit.sp
 import com.s4.R
 import com.s4.bip39.Bip39
 import com.s4.crypto.ShareCodec
+import com.s4.data.repository.PinRepository
+import com.s4.data.repository.SessionRepository
+import com.s4.data.session.SessionCodeGenerator
 import com.s4.model.SplitParams
 import com.s4.ui.components.S4HeaderBar
+import com.s4.ui.pin.PinVerifyDialog
 import com.s4.ui.theme.MonoMeta
 import com.s4.ui.theme.RobotoMono
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class SecretInputMode { MNEMONIC, ENTROPY_HEX }
 
 @Composable
 fun SplitScreen(
     viewModel: SplitViewModel,
+    pinRepository: PinRepository,
+    sessionRepository: SessionRepository,
     onSplitComplete: () -> Unit,
     onOpenGuide: () -> Unit,
     onOpenSettings: () -> Unit = {},
@@ -87,6 +100,42 @@ fun SplitScreen(
     val busy by viewModel.busy.collectAsState()
     val splitError by viewModel.error.collectAsState()
     val pendingNavigation by viewModel.pendingNavigation.collectAsState()
+
+    val scope = rememberCoroutineScope()
+    var showResumeDialog by remember { mutableStateOf(false) }
+    var showResumePinDialog by remember { mutableStateOf(false) }
+    var resumeCode by remember { mutableStateOf("") }
+    var resumeError by remember { mutableStateOf<String?>(null) }
+    var isResuming by remember { mutableStateOf(false) }
+    val resumeErrNotFound = stringResource(R.string.resume_err_not_found)
+    val resumeErrFormat = stringResource(R.string.resume_err_format)
+
+    val resume: (String) -> Unit = { code ->
+        scope.launch {
+            isResuming = true
+            resumeError = null
+            val loaded = withContext(Dispatchers.Default) { sessionRepository.load(code) }
+            isResuming = false
+            if (loaded != null) {
+                viewModel.resumeSession(loaded.toSplitSession(), code)
+                showResumeDialog = false
+                onSplitComplete()
+            } else {
+                resumeError = resumeErrNotFound
+            }
+        }
+    }
+
+    val submitResume: () -> Unit = {
+        val code = SessionCodeGenerator.normalize(resumeCode)
+        if (!SessionCodeGenerator.isValidCode(code)) {
+            resumeError = resumeErrFormat
+        } else if (pinRepository.isPinSet()) {
+            showResumePinDialog = true
+        } else {
+            resume(code)
+        }
+    }
 
     LaunchedEffect(pendingNavigation) {
         if (pendingNavigation) {
@@ -192,6 +241,82 @@ fun SplitScreen(
                 Text(
                     stringResource(R.string.recovery_guide),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            TextButton(
+                onClick  = { showResumeDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("resumeButton"),
+            ) {
+                Text(
+                    stringResource(R.string.resume),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (showResumeDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResumeDialog = false },
+                    title = { Text(stringResource(R.string.resume_dialog_title)) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = resumeCode,
+                                onValueChange = { input ->
+                                    resumeCode = input
+                                        .uppercase()
+                                        .filter { SessionCodeGenerator.isAllowedChar(it) }
+                                        .take(SessionCodeGenerator.CODE_LENGTH)
+                                    resumeError = null
+                                },
+                                label = { Text(stringResource(R.string.resume_code_label)) },
+                                placeholder = { Text(stringResource(R.string.resume_code_placeholder)) },
+                                supportingText = resumeError?.let { error ->
+                                    { Text(error, color = MaterialTheme.colorScheme.error) }
+                                },
+                                isError = resumeError != null,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                                shape = MaterialTheme.shapes.small,
+                                colors = s4TextFieldColors(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("resumeCodeInput"),
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = submitResume,
+                            enabled = !isResuming,
+                            modifier = Modifier.testTag("resumeSubmit"),
+                        ) {
+                            Text(
+                                if (isResuming) stringResource(R.string.resuming) else stringResource(R.string.resume_submit),
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showResumeDialog = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    },
+                )
+            }
+
+            if (showResumePinDialog) {
+                PinVerifyDialog(
+                    repository   = pinRepository,
+                    title        = stringResource(R.string.resume_pin_title),
+                    description  = stringResource(R.string.resume_pin_description),
+                    confirmLabel = stringResource(R.string.resume_submit),
+                    onDismiss    = { showResumePinDialog = false },
+                    onVerified   = {
+                        showResumePinDialog = false
+                        resume(SessionCodeGenerator.normalize(resumeCode))
+                    },
                 )
             }
         }

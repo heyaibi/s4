@@ -45,6 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.s4.data.repository.PinRepository
+import com.s4.data.repository.SessionRepository
 import com.s4.navigation.Routes
 import com.s4.ui.RecoveryGuideScreen
 import com.s4.ui.RestoreScreen
@@ -56,6 +57,7 @@ import com.s4.ui.components.S4BottomNavigationBar
 import com.s4.ui.pin.AuthPinScreen
 import com.s4.ui.pin.PinManagementScreen
 import com.s4.ui.theme.S4Theme
+import com.s4.ui.toSplitSession
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +82,7 @@ class MainActivity : ComponentActivity() {
 fun S4App() {
     val context = LocalContext.current
     val pinRepository = remember { PinRepository(context) }
+    val sessionRepository = remember { SessionRepository(context) }
 
     // PIN gate state: mandatory — PIN is required. The app always starts locked;
     // AuthPinScreen shows setup (no PIN) or unlock (PIN set). No skip path.
@@ -138,6 +141,8 @@ fun S4App() {
             composable(Routes.SPLIT) {
                 SplitScreen(
                     viewModel = splitViewModel,
+                    pinRepository = pinRepository,
+                    sessionRepository = sessionRepository,
                     onSplitComplete = { navController.navigateTo(Routes.SPLIT_RESULT) },
                     onOpenGuide = { navController.navigateTo(Routes.GUIDE) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -152,6 +157,8 @@ fun S4App() {
             composable(Routes.SPLIT_RESULT) {
                 SplitResultScreen(
                     viewModel = splitViewModel,
+                    pinRepository = pinRepository,
+                    sessionRepository = sessionRepository,
                     onOpenGuide = { navController.navigateTo(Routes.GUIDE) },
                     onDone = {
                         splitViewModel.dismissResult()
@@ -171,6 +178,15 @@ fun S4App() {
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     pinRepository = pinRepository,
+                    sessionRepository = sessionRepository,
+                    onOpenSession = { code ->
+                        val loaded = sessionRepository.load(code)
+                        if (loaded != null) {
+                            splitViewModel.resumeSession(loaded.toSplitSession(), code)
+                            navController.popBackStack()
+                            navController.navigate(Routes.SPLIT_RESULT)
+                        }
+                    },
                     onManagePin = { navController.navigate(Routes.PIN_MANAGE) },
                     onBack = { navController.popBackStack() },
                 )

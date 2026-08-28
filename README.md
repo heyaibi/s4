@@ -4,7 +4,7 @@ S4 (Shamir's Secret Sharing Scheme) is the backup half of a personal, fully offl
 
 This tool is built for one specific deployment: a dedicated, air-gapped Motorola phone that runs **AirGap Vault** as its cold wallet and is hardened so it **factory-resets itself under coercion**. S4 is the layer that guarantees the wallet survives that reset — its paper shares are the only durable copy of the seed.
 
-Status: **implemented and verified.** 150+ JVM unit tests (including 60+ PIN/lockout/monotonic-clock/PinStore/PinGate) and 35 instrumented tests pass against the real native crypto, and lint is clean. The non-technical user manual lives in `about.md`.
+Status: **implemented and verified.** 190+ JVM unit tests (including 60+ PIN/lockout/monotonic-clock/PinStore/PinGate and 40+ stamping-session codec/store/generator tests) and 40+ instrumented tests pass against the real native crypto, and lint is clean. The non-technical user manual lives in `about.md`.
 
 ## Screenshots
 
@@ -23,6 +23,12 @@ PIN gate (mandatory 6-digit, PBKDF2-HMAC-SHA256 120k + exponential 30s→24h loc
 Light: <img src="art/screens/guide/pin-setup-light.png" alt="PIN setup — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/pin-unlock-light.png" alt="PIN unlock — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-light.png" alt="Settings — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
 
 Dark: <img src="art/screens/guide/pin-setup-dark.png" alt="PIN setup — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/pin-unlock-dark.png" alt="PIN unlock — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-dark.png" alt="Settings — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Metal stamping — the save PIN prompt, the saved code card on the results page, the "Done stamping" confirmation, the Resume dialog, and Settings → Saved stamping sessions:
+
+Light: <img src="art/screens/guide/save-pin-light.png" alt="Save PIN — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/results-saved-light.png" alt="Saved code card — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/done-stamping-light.png" alt="Done stamping — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/resume-light.png" alt="Resume — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-sessions-light.png" alt="Saved sessions — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Dark: <img src="art/screens/guide/save-pin-dark.png" alt="Save PIN — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/results-saved-dark.png" alt="Saved code card — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/done-stamping-dark.png" alt="Done stamping — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/resume-dark.png" alt="Resume — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-sessions-dark.png" alt="Saved sessions — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
 
 Regenerate them with `make screens` and `make screens-dark` (the app's FLAG_SECURE blocks `adb screencap`, so these use the emulator's own screenshot instead). A step-by-step, picture-by-picture walkthrough of every screen lives in `user-guide.md`.
 
@@ -59,6 +65,7 @@ The result: if an adversary pressures the user to unlock the phone, or guesses t
 - **Restore** — paste any T shares (one per line, with SLIP-39 word suggestions) and the app returns the exact original seed words plus a verification fingerprint, or a clear error (too few shares, wrong word, corrupted checksum, mismatched wallets).
 - **Recovery Guide** — a short verbatim-copyable text the user hand-writes next to the shares so a stranger can reconstruct the wallet with any SLIP-39 + BIP-39 tooling, no app required.
 - **Fingerprint verification** — a `SHA-256(seed)` prefix shown at both split and restore time, so a wrong word or wrong passphrase is caught before any funds are touched.
+- **Metal stamping sessions (optional)** — on the results screen, "Save for stamping" persists the shares to Keystore-encrypted storage under a short paper-written code (PIN-gated), so they survive phone reboots and app kills across an hours-long stamping workflow. "Resume" on the Split screen (or Settings → Saved stamping sessions) brings them back with just the code + PIN; "Done stamping" wipes them. Each session self-expires after 7 days: the app never decrypts an expired session, sweeps it from disk on the next access, and a best-effort alarm removes the bytes near the deadline even if the app stays closed.
 - **PIN gate** — mandatory app-level 6-digit PIN (PBKDF2-HMAC-SHA256 120k, encrypted with Android Keystore, 30s→24h exponential cooldown, monotonic-clock lockout). Required on first launch and via Settings → Change PIN; required before any seed material is shown. Forgot PIN → reinstall (offline, no recovery).
 
 ## How it works
@@ -72,13 +79,13 @@ The app uses a single SLIP-39 group (`group_threshold = 1`, `[{threshold=T, coun
 ## Security model
 
 - **Fully offline** — no `INTERNET` permission in the manifest; nothing is uploaded, sent, or logged anywhere.
-- **Nothing persisted (except PIN)** — seed material lives only in memory. Secret input fields use plain `remember` (not `rememberSaveable`) so secrets never land in system saved-state bundles or on disk; `android:allowBackup="false"` disables cloud backups. The only persisted secret-adjacent data is the PIN's PBKDF2 verifier (never the PIN).
+- **Nothing persisted (except PIN + opt-in stamping sessions)** — seed material lives only in memory unless the user deliberately opts into a metal-stamping session. Secret input fields use plain `remember` (not `rememberSaveable`) so secrets never land in system saved-state bundles or on disk; `android:allowBackup="false"` disables cloud backups. The only persisted secret-adjacent data is the PIN's PBKDF2 verifier (never the PIN) and, after an explicit "Save for stamping", the shares themselves — AES-GCM-encrypted under the Android Keystore (same keys as the PIN verifier), gated by the PIN before they are ever shown again, and self-expiring after 7 days.
 - **PIN protection** — 6-digit PIN, confirmed twice, stored as PBKDF2-HMAC-SHA256 120k + 16-byte salt, ciphertext `enc:iv:cipher:hmac` bound to the pref key via AAD and encrypted under Android Keystore (`S4MasterKey`/`S4HmacKey` with `KeystoreKeyRecovery`). Monotonic clock (`elapsedRealtime` + persisted anchor) enforces a 5-attempt 30s exponential backoff capped at 24h, surviving reboots and wall-clock rollback. `resolvePinGate`/`decideAuthPinSubmit` fail closed on `PinUnreadable` (never verifies against empty hash, never counts as failure). Change PIN requires current PIN; forgot PIN → reinstall.
 - **Screens are protected** — `FLAG_SECURE` is set unconditionally, blocking screenshots, recents snapshots, and screen-mirroring capture.
 - **Gated clipboard** — copying the full share set or a session-backed guide (which embeds the wallet's entropy) requires an explicit risk-confirmation dialog, because the clipboard is readable by other apps and persists after S4 closes.
 - **Stable results** — the results page is a full screen that never auto-dismisses; shares are never regenerated while it is open, and the in-memory session is dropped when the user taps Done.
 - **Threat model** — SLIP-39 provides computational (not information-theoretic) security: a holder of T−1 shares can brute-force via the checksum oracle (2⁻³² false positives), which is fine for 256-bit seed entropy. The app-level PIN adds a second layer when the Android lock screen is already unlocked (shoulder surfing, lending the phone).
-- **Failsafe** — because the phone is configured to factory-reset on coercion (AFTools via Dhizuku), the shares must never be stored on the phone itself; they are paper-only.
+- **Failsafe** — because the phone is configured to factory-reset on coercion (AFTools via Dhizuku), shares are paper-only by default. A stamping session is a deliberate, time-limited exception: the shares sit on the phone only while the owner is physically punching plates, are encrypted at rest, and expire after a week. Expiry is two-layered — the store's lazy expiry makes an expired session unreadable (and sweeps it) the moment the app next runs, which is the actual guarantee; an inexact alarm (`setAndAllowWhileIdle`, no special permission) plus a `BOOT_COMPLETED` receiver scrub the bytes from disk near the deadline even if the app stays closed. A factory reset still destroys both the prefs and the Keystore keys — nothing on-device survives a full wipe, by design.
 
 ## Tech stack
 
@@ -112,7 +119,8 @@ s4/
 │  │  │  ├─ MainActivity.kt          # PIN gate + nav graph, header bar, bottom Split/Restore nav
 │  │  │  ├─ ui/                      # Split/Restore/Results/Guide + pin/ (AuthPinScreen, PinManagementScreen, PinGate)
 │  │  │  ├─ data/crypto/             # PinManager, KeystoreManager, PrefsCrypto + Slip39/Shamir
-│  │  │  ├─ data/repository/         # PinStore, PinRepository, PinLockoutPolicy, MonotonicClock, ProtectedPrefsStore
+│  │  │  ├─ data/repository/         # PinStore, PinRepository, SessionRepository, PinLockoutPolicy, MonotonicClock, ProtectedPrefsStore
+│  │  │  ├─ data/session/            # stamping sessions: SessionStore, SessionCodec, SessionCodeGenerator, SessionExpiryAlarm + boot/expiry receivers
 │  │  │  ├─ navigation/Routes.kt     # SPLIT/RESTORE/GUIDE/SETTINGS/PIN_MANAGE
 │  │  │  ├─ crypto/                  # Slip39.kt, Shamir.kt, ShareCodec.kt, wordlists
 │  │  │  ├─ bip39/Bip39.kt           # entropy ⇄ words, seed derivation, fingerprint
@@ -120,8 +128,8 @@ s4/
 │  │  │  └─ model/SplitParams.kt
 │  │  ├─ cpp/                        # vendored C crypto + CMakeLists + JNI facades
 │  │  └─ resources/                  # BIP-39 and SLIP-39 wordlists
-│  ├─ src/test/                      # 150+ JVM unit tests (91 original + 60+ PIN suite, real native code)
-│  └─ src/androidTest/               # 35+ instrumented tests (SplitRestoreFlow + PIN + on-device crypto)
+│  ├─ src/test/                      # 190+ JVM unit tests (91 original + 60+ PIN suite + 40+ stamping-session suite, real native code)
+│  └─ src/androidTest/               # 40+ instrumented tests (SplitRestoreFlow + PIN + on-device crypto + StampFlow)
 ├─ art/screens/guide/                # `make screens` output incl. pin-setup/unlock/settings (light+dark)
 ```
 
@@ -145,8 +153,8 @@ You can also call the wrapper directly, e.g. `./gradlew :app:assembleDebug` or `
 
 ## Testing
 
-- **150+ JVM unit tests, 0 failures** (verified): 91 original (BIP-39 round-trips/fingerprint, SLIP-39 generation/combine — 11 valid/30 invalid trezor vectors, Shamir, ShareCodec, Guide, WordCompletion, full word-count matrix) + 60+ PIN suite ported from Airgate's well-tested gap: `PinManagerTest` (PBKDF2 iterations/algorithm/salt, constant-time verify, short-PIN reject), `PinLockoutPolicyTest` (5→30s doubling to 24h cap, overflow guards), `PinStoreTest` (single-record vs legacy, refusal on empty/invalid, tamper flag, anti-downgrade), `MonotonicClockTest` (reboot survival, never-backwards), `PinGateTest`/`AuthPinSubmitDecisionTest` (NoPinConfigured/PinUnreadable/Verify branches). Unit tests exercise the real C code through a host dylib (`tools/host-jni/build-host.sh`).
-- **35+ instrumented tests**: end-to-end Compose flows (`SplitRestoreFlowTest` — split 24-word → copy → restore 3/5, passphrase fingerprint, errors, guide copy; PIN flows — setup/unlock/lockout, Settings → Change/Remove, tamper) plus SLIP-39 and Shamir vector/round-trip tests on the device `.so`. `make screens` parks on pin-setup/unlock/settings as well (`ScreenshotCaptureTest`).
+- **190+ JVM unit tests, 0 failures** (verified): 91 original (BIP-39 round-trips/fingerprint, SLIP-39 generation/combine — 11 valid/30 invalid trezor vectors, Shamir, ShareCodec, Guide, WordCompletion, full word-count matrix) + 60+ PIN suite ported from Airgate's well-tested gap: `PinManagerTest` (PBKDF2 iterations/algorithm/salt, constant-time verify, short-PIN reject), `PinLockoutPolicyTest` (5→30s doubling to 24h cap, overflow guards), `PinStoreTest` (single-record vs legacy, refusal on empty/invalid, tamper flag, anti-downgrade), `MonotonicClockTest` (reboot survival, never-backwards), `PinGateTest`/`AuthPinSubmitDecisionTest` (NoPinConfigured/PinUnreadable/Verify branches) + 40+ stamping-session suite: `SessionCodecTest` (round-trips, field-count guard, bounds, fail-closed malformed records), `SessionCodeGeneratorTest` (unambiguous alphabet, uniqueness, request-code collision-freedom), `SessionStoreTest` (persist/reload, multi-session coexistence, delete keeps the registry protected, save rollback on failed registry write, 7-day lazy expiry + sweep, legacy plaintext-registry recovery, fail-closed corruption). Unit tests exercise the real C code through a host dylib (`tools/host-jni/build-host.sh`).
+- **40+ instrumented tests**: end-to-end Compose flows (`SplitRestoreFlowTest` — split 24-word → copy → restore 3/5, passphrase fingerprint, errors, guide copy; PIN flows — setup/unlock/lockout, Settings → Change/Remove, tamper; `StampFlowInstrumentedTest` — save for stamping, resume by code + PIN, multiple sessions, done-stamping wipe, Settings list/open/erase) plus SLIP-39 and Shamir vector/round-trip tests on the device `.so`. `make screens` parks on every screen (incl. the stamping save/resume/settings screens) as well (`ScreenshotCaptureTest`).
 
 ## Documentation
 

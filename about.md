@@ -82,7 +82,18 @@ Your phone's lock screen is a coarse gate. Once you unlock it to show a photo, l
 - **Survival.** Your wallet survives the phone's self-destruct, fires, floods, lost drawers, and dead phones — as long as the minimum number of paper shares survives.
 - **Real theft protection.** A burglar who finds one share — even several, if fewer than the minimum — walks away with nothing.
 - **An inheritance plan that actually works.** Your family can recover the wallet without your help, without this app, and without any technical knowledge.
-- **Privacy.** Everything happens on the phone, offline. Nothing is uploaded, saved, or sent anywhere. The only thing that persists is the PIN verifier — the shares themselves are still paper-only.
+- **Privacy.** Everything happens on the phone, offline. Nothing is uploaded, saved, or sent anywhere. The only things that ever persist are the PIN verifier and — only if you opt in — a stamping session you are actively punching into metal (see below). Otherwise the shares themselves are paper-only.
+
+## Stamping the shares into metal (optional)
+
+If you are punching the shares onto metal plates instead of writing them on paper, the job takes hours and usually spans several days. The phone rebooting or app exits mid-job used to destroy every unpunched share. A one-time, opt-in step fixes that:
+
+- **Save for stamping.** On the results screen, tap **Save for stamping** and confirm with your PIN. The shares are stored on the phone, encrypted, under a short **code** (six characters like `X7K2M9`) shown on screen. Write the code on paper with your plates.
+- **Resume.** Next session — hours later — open the app, tap **Resume** on the Split screen, type the code, and confirm your PIN. Your shares are right where you left them. You can also open a saved session from **Settings → Saved stamping sessions**.
+- **Done stamping.** When every plate is finished, open the session and tap **Done stamping**. The saved copy is erased from the phone.
+- **Self-destructing copy.** Any saved session is erased **7 days after saving** — the app never shows an expired session, and a background alarm scrubs the file even if you never open the app again. Punching within a week is the deal; if a job will take longer, save each wallet as its own session and treat the code like the shares.
+
+Remember: this is a **temporary working copy** for the punch job, not a substitute for the paper shares. The paper shares remain the wallet's real backup — they are the only copy that survives a phone wipe.
 
 ## Your part of the bargain
 

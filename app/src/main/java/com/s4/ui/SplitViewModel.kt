@@ -21,6 +21,7 @@ import androidx.lifecycle.viewModelScope
 import com.s4.bip39.Bip39
 import com.s4.crypto.Slip39
 import com.s4.model.SplitParams
+import com.s4.model.StampingSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,6 +57,14 @@ class SplitViewModel : ViewModel() {
     private val _session = MutableStateFlow<SplitSession?>(null)
     val session: StateFlow<SplitSession?> = _session.asStateFlow()
 
+    /**
+     * The paper-written code of the persisted stamping session the current
+     * [session] was saved under (null when the session was never saved, or was
+     * wiped). Drives the "saved" state and the "Done stamping" action.
+     */
+    private val _savedCode = MutableStateFlow<String?>(null)
+    val savedCode: StateFlow<String?> = _savedCode.asStateFlow()
+
     /** True after a split completes, until the results page is shown. */
     private val _pendingNavigation = MutableStateFlow(false)
     val pendingNavigation: StateFlow<Boolean> = _pendingNavigation.asStateFlow()
@@ -80,6 +89,7 @@ class SplitViewModel : ViewModel() {
         _busy.value = true
         _error.value = null
         _session.value = null
+        _savedCode.value = null
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 val entropy = Bip39.mnemonicToEntropy(words)
@@ -109,9 +119,55 @@ class SplitViewModel : ViewModel() {
         _pendingNavigation.value = false
     }
 
+    /**
+     * Marks the current session as persisted under [code] (called after a
+     * successful "Save for stamping"). The in-memory session itself is
+     * unchanged.
+     */
+    fun markSessionSaved(code: String) {
+        _savedCode.value = code
+    }
+
+    /**
+     * Loads a persisted stamping session back into memory (the Resume flow),
+     * ready to continue stamping.
+     */
+    fun resumeSession(session: SplitSession, code: String) {
+        _session.value = session
+        _savedCode.value = code
+        _pendingNavigation.value = false
+        _error.value = null
+    }
+
     fun dismissResult() {
         _session.value = null
+        _savedCode.value = null
     }
 
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 }
+
+/** Maps a persisted [StampingSession] back into the in-memory [SplitSession]. */
+fun StampingSession.toSplitSession(): SplitSession = SplitSession(
+    params = SplitParams(threshold, shareCount),
+    shares = shares,
+    entropyHex = entropyHex,
+    seedWordCount = seedWordCount,
+    fingerprint = fingerprint,
+    passphraseUsed = passphraseUsed,
+    passphraseLocation = passphraseLocation,
+)
+
+/** Maps the in-memory [SplitSession] into its persisted form (no passphrase). */
+fun SplitSession.toStampingSession(createdAt: Long = System.currentTimeMillis()): StampingSession =
+    StampingSession(
+        threshold = params.threshold,
+        shareCount = params.shareCount,
+        shares = shares,
+        entropyHex = entropyHex,
+        seedWordCount = seedWordCount,
+        fingerprint = fingerprint,
+        passphraseUsed = passphraseUsed,
+        passphraseLocation = passphraseLocation,
+        createdAt = createdAt,
+    )

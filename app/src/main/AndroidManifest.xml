@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Re-arms the per-session expiry alarms after a reboot so stamping
+         sessions are still scrubbed from disk on time even if the app is
+         never reopened. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -18,6 +23,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Fired by a per-session inexact alarm near the session's expiry:
+             scrubs the encrypted record from disk even when the app is closed. -->
+        <receiver
+            android:name=".data.session.SessionExpiryReceiver"
+            android:exported="false" />
+
+        <!-- Re-arms expiry alarms after reboot (alarms do not survive restart). -->
+        <receiver
+            android:name=".data.session.SessionBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

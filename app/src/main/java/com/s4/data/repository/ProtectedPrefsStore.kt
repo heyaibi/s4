@@ -29,7 +29,7 @@ internal class ProtectedPrefsStore(
     private val cryptoFactory: () -> PrefsCrypto? = { runCatching { KeystoreManager() }.getOrNull() },
 ) {
     companion object {
-        private const val ENC_PREFIX = "enc:"
+        const val ENC_PREFIX = "enc:"
         private const val ENCRYPTED_PARTS = 3
         private val processTamperLatch = java.util.concurrent.atomic.AtomicBoolean(false)
 

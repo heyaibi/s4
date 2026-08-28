@@ -61,6 +61,10 @@ class ScreenshotCaptureTest {
         // Start clean: no PIN, fresh prompt. The activity is already launched by the rule,
         // so we clear prefs and recreate to show the PIN setup.
         prefs.edit().clear().apply()
+        // Also clear any stamping sessions so the "save for stamping" screens
+        // capture exactly one fresh session regardless of prior test state.
+        InstrumentationRegistry.getInstrumentation().targetContext
+            .deleteSharedPreferences("s4_stamp_prefs")
         // Clear any leftover markers from a previous run so the host's poll
         // can't trip on a stale one before this run parks on the view.
         filesDir.listFiles { it.name.endsWith(".park") }?.forEach { it.delete() }
@@ -194,6 +198,51 @@ class ScreenshotCaptureTest {
         composeRule.onNodeWithText("Not enough shares", substring = true).performScrollTo()
         composeRule.waitForIdle()
         park("restore-error")
+
+        // 9. Metal stamping: split, then "Save for stamping" (PIN-gated). Park the
+        //    verification dialog and the saved code card, plus the "Done stamping"
+        //    confirmation.
+        composeRule.onNodeWithTag("tabSplit").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("seedInput").performTextReplacement(MNEMONIC_24)
+        composeRule.onNodeWithTag("confirmButton").performScrollTo().performClick()
+        waitForText("Seed shares")
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("saveForStamping").performScrollTo().performClick()
+        waitForText("Enter your PIN")
+        composeRule.waitForIdle()
+        park("save-pin")
+
+        composeRule.onNodeWithTag("pinVerifyInput").performTextReplacement("123456")
+        composeRule.onNodeWithTag("pinVerifyConfirm").performClick()
+        composeRule.waitForIdle()
+        waitForText("Your stamping code")
+        park("results-saved")
+
+        composeRule.onNodeWithTag("doneStamping").performScrollTo().performClick()
+        waitForText("Finish stamping?")
+        composeRule.waitForIdle()
+        park("done-stamping")
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        // 10. Resume dialog on the split screen (code entry from paper).
+        composeRule.onNodeWithText("Done").performScrollTo().performClick()
+        waitForText("Split a wallet")
+        composeRule.onNodeWithTag("resumeButton").performScrollTo().performClick()
+        waitForText("Resume a stamped session")
+        composeRule.waitForIdle()
+        park("resume")
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        // 11. Settings → Saved stamping sessions (the session saved above is listed).
+        composeRule.onNodeWithTag("settingsButton").performScrollTo().performClick()
+        waitForText("Settings")
+        waitForText("STAMPING SESSIONS", substring = true)
+        composeRule.waitForIdle()
+        park("settings-sessions")
     }
 
     private fun closeKeyboard() {
@@ -207,9 +256,10 @@ class ScreenshotCaptureTest {
     }
 
     private fun waitForText(text: String, substring: Boolean = true) {
-        composeRule.waitUntil(timeoutMillis = 15_000) {
+        composeRule.waitUntil(timeoutMillis = 30_000) {
             composeRule.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.waitForIdle()
     }
 
     private fun entropy(): ByteArray = Bip39.mnemonicToEntropy(MNEMONIC_24.split(" "))

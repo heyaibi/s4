@@ -1,6 +1,6 @@
 # S4 user guide — step by step
 
-This is the picture-by-picture guide to using S4. It walks the same journey as the manual in `about.md`, with a screenshot of every screen. Everything happens on the phone, fully offline — nothing is uploaded, saved, or stored anywhere. The only thing that persists besides ephemeral seed state is the mandatory 6-digit PIN (as a PBKDF2 verifier, never the PIN).
+This is the picture-by-picture guide to using S4. It walks the same journey as the manual in `about.md`, with a screenshot of every screen. Everything happens on the phone, fully offline — nothing is uploaded, saved, or stored anywhere. The only things that ever persist are the mandatory 6-digit PIN (as a PBKDF2 verifier, never the PIN) and — only if you opt in — a stamping session you are punching into metal (§3a), which self-expires after 7 days.
 
 ## 0. PIN — first launch, then every launch
 
@@ -47,9 +47,34 @@ If you created your wallet with physical dice, you may have raw entropy hex rath
 S4 shows every share as its own block of English words. The fingerprint at the top is a short check code for your wallet.
 
 - **Write each share down on paper and store it separately.** No single place should hold enough shares to rebuild the wallet.
-- S4 never stores the shares itself — close the screen and they are gone. The only persisted data is the mandatory PIN verifier.
+- S4 never stores the shares itself — close the screen and they are gone, unless you opted into a stamping session (§3a).
 
 <img src="art/screens/guide/results-light.png" alt="Results page" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+## 3a. Stamping the shares into metal (optional)
+
+If you are punching the shares onto metal plates, the job takes hours and spans days. Instead of re-entering everything if the phone dies mid-job, save the session on the results page:
+
+1. Tap **Save for stamping** and confirm your PIN.
+2. S4 writes the shares to encrypted storage and shows a short **code** (six characters like `X7K2M9`) for your reference. Write it down on a paper.
+
+<img src="art/screens/guide/save-pin-light.png" alt="Save for stamping — PIN prompt" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+<img src="art/screens/guide/results-saved-light.png" alt="Saved — code shown on the results page" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+3. Next session — later the same day, or a week later — tap **Resume** on the Split screen, type the code, and confirm your PIN. Your shares come back exactly where you left them.
+
+<img src="art/screens/guide/resume-light.png" alt="Resume — enter the code from paper" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+4. Finished every plate? Open the session and tap **Done stamping**, then confirm. The saved copy is erased from the phone.
+
+<img src="art/screens/guide/done-stamping-light.png" alt="Done stamping — confirmation" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Saved sessions are also listed in **Settings → Saved stamping sessions**, where you can open one (to view its shares) or erase it (to wipe the copy) — handy if you lose the paper code.
+
+<img src="art/screens/guide/settings-sessions-light.png" alt="Saved stamping sessions in Settings" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+**Important:** every saved session self-destructs **7 days after saving** — the app never shows an expired session and a background alarm scrubs the file even if you never open the app again. Plan to finish each job within a week. This copy is a temporary working aid for the punch job, not a backup: the paper shares remain the wallet's real master copy.
 
 ## 4. The Recovery Guide
 
@@ -84,7 +109,9 @@ Entering too few shares (or a wrong or corrupted word) shows a clear error inste
 
 ## 8. Security notes
 
-- S4 never touches the network and stores only the mandatory PIN verifier besides ephemeral seed state — all seed state lives in memory and is dropped when you leave the screen or the app closes. Secrets use plain `remember` (not `rememberSaveable`) and `android:allowBackup="false"`.
+- S4 never touches the network. Seed material lives in memory and is dropped when you leave the screen or the app closes — except for an opted-in stamping session, which is stored Keystore-encrypted, PIN-gated, and self-expires after 7 days (lazy expiry makes it unreadable; a background alarm + boot receiver scrub the bytes). Secrets use plain `remember` (not `rememberSaveable`) and `android:allowBackup="false"`.
 - **PIN:** 6 digits, PBKDF2-HMAC-SHA256 120k + Keystore-encrypted `enc:iv:cipher:hmac` (AAD-bound, `KeystoreKeyRecovery`), 5-attempt 30s→24h monotonic lockout, fail-closed `PinUnreadable`. Inspired by Airgate's well-tested gap.
 - Copying shares (or a guide that embeds the wallet) to the clipboard requires an explicit confirmation first, because the clipboard is readable by other apps.
 - `FLAG_SECURE` blocks screenshots/recents. PIN screens themselves are also `FLAG_SECURE`.
+
+Dark variants of every screen are captured by `make screens-dark` (`…-dark.png` alongside each light capture, including `save-pin`, `results-saved`, `done-stamping`, `resume`, `settings-sessions`).

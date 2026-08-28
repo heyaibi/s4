@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -47,28 +49,56 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.s4.R
+import com.s4.data.repository.PinRepository
+import com.s4.data.repository.SessionRepository
 import com.s4.ui.components.S4HeaderBar
+import com.s4.ui.pin.PinVerifyDialog
 import com.s4.ui.theme.MonoMeta
 import com.s4.ui.theme.RobotoMono
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Full-screen result of a split. Stays on screen until the user explicitly
  * leaves (onDone, system back, or switching tabs) — no accidental dismissal,
  * and the shares are never regenerated while this page is up.
+ *
+ * From here a user can opt into the metal-stamping workflow: "Save for
+ * stamping" persists the shares (PIN-gated) under a short code they write on
+ * paper, and "Done stamping" wipes a saved session once every plate is done.
  */
 @Composable
 fun SplitResultScreen(
     viewModel: SplitViewModel,
+    pinRepository: PinRepository,
+    sessionRepository: SessionRepository,
     onOpenGuide: () -> Unit,
     onDone: () -> Unit,
 ) {
     val session = viewModel.session.collectAsState().value
+    val savedCode = viewModel.savedCode.collectAsState().value
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     var copied by remember { mutableStateOf(false) }
     var showCopyWarning by remember { mutableStateOf(false) }
+    var showSavePinDialog by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
+    var showDoneStampingConfirm by remember { mutableStateOf(false) }
     val fingerprintPrefix = stringResource(R.string.fingerprint_prefix)
+
+    val saveSession: (SplitSession) -> Unit = { sess ->
+        scope.launch {
+            isSaving = true
+            saveFailed = false
+            val code = withContext(Dispatchers.Default) {
+                sessionRepository.save(sess.toStampingSession())
+            }
+            isSaving = false
+            if (code != null) viewModel.markSessionSaved(code) else saveFailed = true
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -123,6 +153,37 @@ fun SplitResultScreen(
                 }
             }
 
+            // Saved stamping session: the paper-written code + expiry policy
+            savedCode?.let { code ->
+                SectionCard(eyebrow = stringResource(R.string.saved_session_eyebrow)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text  = stringResource(R.string.saved_code_label),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text  = code,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontFamily = RobotoMono,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 3.0.sp,
+                        )
+                        Text(
+                            text  = stringResource(R.string.saved_code_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text  = stringResource(R.string.saved_expiry_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Share cards
             sess.shares.forEachIndexed { index, mnemonic ->
                 ShareCard(index = index + 1, mnemonic = mnemonic)
@@ -130,6 +191,47 @@ fun SplitResultScreen(
         }
 
         // ── Actions ────────────────────────────────────────────────────────
+        if (saveFailed) {
+            ErrorBanner(stringResource(R.string.save_failed))
+        }
+
+        if (savedCode == null) {
+            TextButton(
+                onClick = {
+                    if (session != null) {
+                        if (pinRepository.isPinSet()) {
+                            showSavePinDialog = true
+                        } else {
+                            saveSession(session)
+                        }
+                    }
+                },
+                enabled  = session != null && !isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("saveForStamping"),
+            ) {
+                Text(
+                    text  = if (isSaving) stringResource(R.string.saving) else stringResource(R.string.save_for_stamping),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (showSavePinDialog && session != null) {
+            PinVerifyDialog(
+                repository   = pinRepository,
+                title        = stringResource(R.string.save_pin_title),
+                description  = stringResource(R.string.save_pin_description),
+                confirmLabel = stringResource(R.string.save_for_stamping),
+                onDismiss    = { showSavePinDialog = false },
+                onVerified   = {
+                    showSavePinDialog = false
+                    saveSession(session)
+                },
+            )
+        }
+
         val copyText = session?.shares?.joinToString("\n")
         ActionButton(
             label        = if (copied) stringResource(R.string.copied) else stringResource(R.string.copy_all),
@@ -166,6 +268,44 @@ fun SplitResultScreen(
             )
         }
 
+        if (savedCode != null) {
+            TextButton(
+                onClick  = { showDoneStampingConfirm = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("doneStamping"),
+            ) {
+                Text(
+                    stringResource(R.string.done_stamping),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        if (showDoneStampingConfirm && savedCode != null) {
+            AlertDialog(
+                onDismissRequest = { showDoneStampingConfirm = false },
+                title = { Text(stringResource(R.string.done_stamping_confirm_title)) },
+                text  = { Text(stringResource(R.string.done_stamping_confirm_message, savedCode)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDoneStampingConfirm = false
+                            scope.launch { sessionRepository.delete(savedCode) }
+                            onDone()
+                        },
+                    ) {
+                        Text(stringResource(R.string.erase))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDoneStampingConfirm = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
+        }
+
         TextButton(
             onClick  = onDone,
             modifier = Modifier.fillMaxWidth(),
@@ -175,8 +315,8 @@ fun SplitResultScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        }
     }
-}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

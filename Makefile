@@ -8,6 +8,9 @@ GRADLE      ?= ./gradlew
 # Android Studio's bundled JBR is a reliable JDK on macOS; override with
 # `make JAVA_HOME=/path/to/jdk <target>` if you use a different one.
 JAVA_HOME   ?= $(shell test -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" && echo "/Applications/Android Studio.app/Contents/jbr/Contents/Home")
+# If JAVA_HOME is set in the environment but points at a missing directory
+# (e.g. stale homebrew openjdk@26 path), fall back to Android Studio's JBR.
+JAVA_HOME   := $(shell test -d "$(JAVA_HOME)" && echo "$(JAVA_HOME)" || (test -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" && echo "/Applications/Android Studio.app/Contents/jbr/Contents/Home" || echo "$(JAVA_HOME)"))
 SDK         ?= $(shell cat local.properties 2>/dev/null | sed -n 's/^sdk\.dir=//p' || echo "$$ANDROID_HOME")
 ADB         ?= $(SDK)/platform-tools/adb
 EMULATOR    ?= $(SDK)/emulator/emulator
@@ -122,7 +125,6 @@ define wait_and_shot
 		n=$$((n+1)); [ $$n -gt 200 ] && { echo "error: timed out waiting for '$(strip $(1))'"; exit 1; }; \
 		sleep 0.3; \
 	done; \
-	$(ADB) -s "$(DEVICE)" shell "input keyevent 111" >/dev/null 2>&1; \
 	sleep 0.5; \
 	mkdir -p /tmp/s4-shot-$(strip $(1)); \
 	$(ADB) -s "$(DEVICE)" emu screenrecord screenshot /tmp/s4-shot-$(strip $(1)) >/dev/null 2>&1; \
@@ -149,6 +151,11 @@ screens: emulator build
 	@$(call wait_and_shot, restore, art/screens/guide/restore-light.png)
 	@$(call wait_and_shot, restore-result, art/screens/guide/restore-result-light.png)
 	@$(call wait_and_shot, restore-error, art/screens/guide/restore-error-light.png)
+	@$(call wait_and_shot, save-pin, art/screens/guide/save-pin-light.png)
+	@$(call wait_and_shot, results-saved, art/screens/guide/results-saved-light.png)
+	@$(call wait_and_shot, done-stamping, art/screens/guide/done-stamping-light.png)
+	@$(call wait_and_shot, resume, art/screens/guide/resume-light.png)
+	@$(call wait_and_shot, settings-sessions, art/screens/guide/settings-sessions-light.png)
 
 screens-dark: emulator build
 	@mkdir -p art/screens/guide
@@ -170,6 +177,11 @@ screens-dark: emulator build
 	@$(call wait_and_shot, restore, art/screens/guide/restore-dark.png)
 	@$(call wait_and_shot, restore-result, art/screens/guide/restore-result-dark.png)
 	@$(call wait_and_shot, restore-error, art/screens/guide/restore-error-dark.png)
+	@$(call wait_and_shot, save-pin, art/screens/guide/save-pin-dark.png)
+	@$(call wait_and_shot, results-saved, art/screens/guide/results-saved-dark.png)
+	@$(call wait_and_shot, done-stamping, art/screens/guide/done-stamping-dark.png)
+	@$(call wait_and_shot, resume, art/screens/guide/resume-dark.png)
+	@$(call wait_and_shot, settings-sessions, art/screens/guide/settings-sessions-dark.png)
 
 logcat: emulator
 	$(ADB) -s "$(DEVICE)" logcat -v time | grep --line-buffered "$(APP_ID)"
