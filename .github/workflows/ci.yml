@@ -3,7 +3,29 @@ name: CI
 on:
   push:
     branches: [master]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'settings-gradle.lockfile'
+      - 'gradle/libs.versions.toml'
+      - 'Makefile'
+      - 'tools/**'
+      - '.github/workflows/**'
   pull_request:
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'settings-gradle.lockfile'
+      - 'gradle/libs.versions.toml'
+      - 'Makefile'
+      - 'tools/**'
+      - '.github/workflows/**'
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

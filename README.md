@@ -10,25 +10,51 @@ Status: **implemented and verified.** 190+ JVM unit tests (including 60+ PIN/loc
 
 The split screen: enter a seed phrase (or raw entropy), add an optional BIP-39 passphrase, and pick how many shares to create. The fingerprint preview lets you confirm the passphrase before anything is split.
 
-Light theme:
+**Split screen**
 
-<img src="art/screens/screen-light.png" alt="S4 split screen — light theme" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+| Light | Dark |
+|-------|------|
+| <img src="art/screens/screen-light.png" alt="S4 split screen — light theme" width="280" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> | <img src="art/screens/screen-dark.png" alt="S4 split screen — dark theme" width="280" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> |
 
-Dark theme:
+**PIN gate** — mandatory 6-digit, PBKDF2-HMAC-SHA256 120k + exponential 30s→24h lockout — setup, unlock, and Settings → Change PIN:
 
-<img src="art/screens/screen-dark.png" alt="S4 split screen — dark theme" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+Light:
 
-PIN gate (mandatory 6-digit, PBKDF2-HMAC-SHA256 120k + exponential 30s→24h lockout) — setup, unlock, and Settings → Change PIN:
+<p>
+  <img src="art/screens/guide/pin-setup-light.png" alt="PIN setup — light" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/pin-unlock-light.png" alt="PIN unlock — light" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/settings-light.png" alt="Settings — light" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+</p>
 
-Light: <img src="art/screens/guide/pin-setup-light.png" alt="PIN setup — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/pin-unlock-light.png" alt="PIN unlock — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-light.png" alt="Settings — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+Dark:
 
-Dark: <img src="art/screens/guide/pin-setup-dark.png" alt="PIN setup — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/pin-unlock-dark.png" alt="PIN unlock — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-dark.png" alt="Settings — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+<p>
+  <img src="art/screens/guide/pin-setup-dark.png" alt="PIN setup — dark" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/pin-unlock-dark.png" alt="PIN unlock — dark" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/settings-dark.png" alt="Settings — dark" width="250" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+</p>
 
-Metal stamping — the save PIN prompt, the saved code card on the results page, the "Done stamping" confirmation, the Resume dialog, and Settings → Saved stamping sessions:
+**Metal stamping** — the save PIN prompt, the saved code card on the results page, the "Done stamping" confirmation, the Resume dialog, and Settings → Saved stamping sessions:
 
-Light: <img src="art/screens/guide/save-pin-light.png" alt="Save PIN — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/results-saved-light.png" alt="Saved code card — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/done-stamping-light.png" alt="Done stamping — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/resume-light.png" alt="Resume — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-sessions-light.png" alt="Saved sessions — light" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+Light:
 
-Dark: <img src="art/screens/guide/save-pin-dark.png" alt="Save PIN — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/results-saved-dark.png" alt="Saved code card — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/done-stamping-dark.png" alt="Done stamping — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/resume-dark.png" alt="Resume — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" /> <img src="art/screens/guide/settings-sessions-dark.png" alt="Saved sessions — dark" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+<p>
+  <img src="art/screens/guide/save-pin-light.png" alt="Save PIN — light" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/results-saved-light.png" alt="Saved code card — light" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/done-stamping-light.png" alt="Done stamping — light" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/resume-light.png" alt="Resume — light" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/settings-sessions-light.png" alt="Saved sessions — light" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+</p>
+
+Dark:
+
+<p>
+  <img src="art/screens/guide/save-pin-dark.png" alt="Save PIN — dark" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/results-saved-dark.png" alt="Saved code card — dark" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/done-stamping-dark.png" alt="Done stamping — dark" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/resume-dark.png" alt="Resume — dark" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+  <img src="art/screens/guide/settings-sessions-dark.png" alt="Saved sessions — dark" width="180" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+</p>
 
 Regenerate them with `make screens` and `make screens-dark` (the app's FLAG_SECURE blocks `adb screencap`, so these use the emulator's own screenshot instead). A step-by-step, picture-by-picture walkthrough of every screen lives in `user-guide.md`.
 
