@@ -15,12 +15,12 @@ This is a personal, single-maintainer project: expect an acknowledgment within 5
 
 ## Scope
 
-- `app/` — the Android app (Kotlin/Compose) and its JNI facades.
+- `app/` — the Android app (Kotlin/Compose) and its JNI facades, including `data/crypto/PinManager` + `KeystoreManager`/`PrefsCrypto`, `data/repository/PinStore`/`ProtectedPrefsStore`/`PinLockoutPolicy`/`MonotonicClock`, and `ui/pin/` (`AuthPinScreen`, `PinGate`, `PinVerifyDialog`, `PinManagementScreen`, `MainActivity` PIN gate with `LifecycleEventObserver` ON_STOP re-lock).
 - `app/src/main/cpp/` — vendored bc-shamir, bc-slip39, and bc-crypto-base.
 - `airgap/` — the phone provisioning script and its app list.
 - `tools/` — the host-JNI test harness.
 
-Out of scope are third-party dependencies and the operating system; report those to their owners.
+Out of scope are third-party dependencies and the operating system; report those to their owners. Biometric unlock and PIN recovery are intentionally out of scope (offline, no account).
 
 ## Reporting a non-security bug
 

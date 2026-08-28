@@ -137,6 +137,10 @@ screens: emulator build
 	@$(ADB) -s "$(DEVICE)" shell "cmd uimode night no"
 	@$(ADB) -s "$(DEVICE)" shell "run-as $(APP_ID) sh -c 'rm -f /data/data/com.s4/files/*.park'" >/dev/null 2>&1 || true
 	@$(ADB) -s "$(DEVICE)" shell "am instrument -e class com.s4.ui.ScreenshotCaptureTest com.s4.test/androidx.test.runner.AndroidJUnitRunner" >/dev/null 2>&1 || true
+	@$(call wait_and_shot, pin-setup, art/screens/guide/pin-setup-light.png)
+	@$(call wait_and_shot, pin-unlock, art/screens/guide/pin-unlock-light.png)
+	@$(call wait_and_shot, settings, art/screens/guide/settings-light.png)
+	@$(call wait_and_shot, pin-manage, art/screens/guide/pin-manage-light.png)
 	@$(call wait_and_shot, screen, art/screens/screen-light.png)
 	@$(call wait_and_shot, split-entropy, art/screens/guide/split-entropy-light.png)
 	@$(call wait_and_shot, results, art/screens/guide/results-light.png)
@@ -154,6 +158,10 @@ screens-dark: emulator build
 	@$(ADB) -s "$(DEVICE)" shell "cmd uimode night yes"
 	@$(ADB) -s "$(DEVICE)" shell "run-as $(APP_ID) sh -c 'rm -f /data/data/com.s4/files/*.park'" >/dev/null 2>&1 || true
 	@$(ADB) -s "$(DEVICE)" shell "am instrument -e class com.s4.ui.ScreenshotCaptureTest com.s4.test/androidx.test.runner.AndroidJUnitRunner" >/dev/null 2>&1 || true
+	@$(call wait_and_shot, pin-setup, art/screens/guide/pin-setup-dark.png)
+	@$(call wait_and_shot, pin-unlock, art/screens/guide/pin-unlock-dark.png)
+	@$(call wait_and_shot, settings, art/screens/guide/settings-dark.png)
+	@$(call wait_and_shot, pin-manage, art/screens/guide/pin-manage-dark.png)
 	@$(call wait_and_shot, screen, art/screens/screen-dark.png)
 	@$(call wait_and_shot, split-entropy, art/screens/guide/split-entropy-dark.png)
 	@$(call wait_and_shot, results, art/screens/guide/results-dark.png)

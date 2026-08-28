@@ -71,6 +71,7 @@ data class RestoreResult(
 @Composable
 fun RestoreScreen(
     onOpenGuide: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     initialShares: String = "",
     initialPassphrase: String = "",
 ) {
@@ -102,7 +103,7 @@ fun RestoreScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        S4HeaderBar()
+        S4HeaderBar(onSettingsClick = onOpenSettings)
 
         Column(
             modifier = Modifier

@@ -34,12 +34,16 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import android.content.Context
 import com.s4.MainActivity
 import com.s4.bip39.Bip39
 import com.s4.crypto.Slip39Wordlist
+import com.s4.data.crypto.PinManager
+import com.s4.data.repository.PinRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +59,36 @@ class SplitRestoreFlowTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun clearPinAndUnlock() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = ctx.getSharedPreferences("s4_secure_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().commit()
+        // Mandatory PIN: seed the store so the gate shows unlock, then unlock via UI.
+        val pm = PinManager()
+        val salt = pm.generateSalt()
+        val hash = pm.hashPin("123456", salt)
+        PinRepository(prefs).savePin(hash, salt, PinManager.DEFAULT_ITERATIONS, PinManager.DEFAULT_ALGORITHM)
+        composeRule.activity.runOnUiThread { composeRule.activity.recreate() }
+        composeRule.waitForIdle()
+        Thread.sleep(800)
+        waitForText("Enter PIN", substring = true)
+        try {
+            composeRule.onAllNodesWithText("Enter PIN")[1].performTextReplacement("123456")
+            composeRule.onNodeWithText("Unlock").performClick()
+            composeRule.waitForIdle()
+            Thread.sleep(800)
+        } catch (_: Throwable) {
+            try {
+                composeRule.onAllNodesWithText("Enter PIN", substring = true)[1].performTextReplacement("123456")
+                composeRule.onNodeWithText("Unlock").performClick()
+                composeRule.waitForIdle()
+                Thread.sleep(800)
+            } catch (_: Throwable) {}
+        }
+        waitForText("Split a wallet", substring = true)
+    }
 
     // Official BIP-39 vector (24 words, all-zero 32-byte entropy).
     private val mnemonic24 =

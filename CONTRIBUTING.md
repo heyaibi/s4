@@ -27,13 +27,13 @@ Thanks for your interest. S4 is a personal, security-critical tool: it handles c
 
 | Command | What it checks |
 |---|---|
-| `make unit` | 91 JVM unit tests (BIP-39, SLIP-39 vectors, fingerprint, codecs, guide, word completion) against the real native code |
+| `make unit` | 202 JVM unit tests (91 original + 111 PIN: BIP-39, SLIP-39 vectors, fingerprint, codecs, guide, word completion, PinManager/PinLockoutPolicy/PinStore/MonotonicClock/PinGate) against the real native code |
 | `make lint` | Android lint, clean |
 | `make build` | debug APK assembles (all three ABIs) |
-| `make android-test` | 35 instrumented tests on a device or the `s4_dev` emulator |
+| `make android-test` | 40+ instrumented tests on a device or the `s4_dev` emulator (SplitRestoreFlow + PIN setup/unlock/lockout/Settings) |
+| `make screens` / `make screens-dark` | regenerates 12 light + 12 dark screenshots via `ScreenshotCaptureTest` (PIN setup/unlock/settings/pin-manage included, `adb emu screenrecord`) |
 
 `make verify` runs all four in sequence. CI mirrors them: the `checks` job (unit + lint + build) and the `instrumented` job (emulator) must both pass.
-
 ## Release build
 
 The release APK is signed with a keystore whose credentials live in `~/.gradle/gradle.properties` (`S4_RELEASE_STORE_FILE`, `S4_RELEASE_STORE_PASSWORD`, `S4_RELEASE_KEY_ALIAS`, `S4_RELEASE_KEY_PASSWORD`) — never in the repo. Build it with `make release` (or `./gradlew :app:assembleRelease`), which produces a signed, unminified APK at `app/build/outputs/apk/release/app-release.apk` and prints its SHA-256 for the `airgap/apps.json` entry. Back the keystore up offline: Android apps are permanently bound to their signing key, so losing it makes future updates impossible.
@@ -61,10 +61,10 @@ Every release:
 
 ## Testing
 
-- Add or update unit tests for any core logic change; the suite must stay green and ideally grow.
+- Add or update unit tests for any core logic change; the suite must stay green and ideally grow. PIN changes must extend `PinManagerTest`, `PinStoreTest`, `MonotonicClockTest`, `PinLockoutPolicyTest`, `PinGateTest`, `AuthPinSubmitDecisionTest` (unit) and `PinFlowInstrumentedTest` (device) — the 111-test PIN suite ported from Airgate’s well-tested gap.
 - Native changes must pass the official SLIP-39 vectors (`app/src/test/java/com/s4/crypto/Slip39Test.kt`) on both the host dylib and the device.
-- UI changes should extend `SplitRestoreFlowTest` or the instrumented crypto tests, and the error paths (too few shares, corrupted word, mismatched identifiers, wrong passphrase fingerprint) must be covered.
-- Never disable or relax a test to make CI green.
+- UI changes should extend `SplitRestoreFlowTest`/`ScreenshotCaptureTest` or the instrumented crypto tests, and the error paths (too few shares, corrupted word, mismatched identifiers, wrong passphrase fingerprint, PIN wrong + lockout 5→30s→24h, tamper `PinUnreadable`) must be covered.
+- Never disable or relax a test to make CI green. Run `make verify` locally; it boots `s4_dev` if no device is present.
 
 ## Submitting a PR
 

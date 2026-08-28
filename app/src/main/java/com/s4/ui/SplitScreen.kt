@@ -65,7 +65,12 @@ import kotlin.math.roundToInt
 enum class SecretInputMode { MNEMONIC, ENTROPY_HEX }
 
 @Composable
-fun SplitScreen(viewModel: SplitViewModel, onSplitComplete: () -> Unit, onOpenGuide: () -> Unit) {
+fun SplitScreen(
+    viewModel: SplitViewModel,
+    onSplitComplete: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+) {
     var inputModeName by rememberSaveable { mutableStateOf(SecretInputMode.MNEMONIC.name) }
     val inputMode = SecretInputMode.valueOf(inputModeName)
     // Seed/entropy/passphrase fields use plain `remember` (not `rememberSaveable`)
@@ -105,7 +110,7 @@ fun SplitScreen(viewModel: SplitViewModel, onSplitComplete: () -> Unit, onOpenGu
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        S4HeaderBar()
+        S4HeaderBar(onSettingsClick = onOpenSettings)
 
         Column(
             modifier = Modifier

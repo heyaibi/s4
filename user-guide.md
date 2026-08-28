@@ -1,16 +1,40 @@
 # S4 user guide — step by step
 
-This is the picture-by-picture guide to using S4. It walks the same journey as the manual in `about.md`, with a screenshot of every screen. Everything happens on the phone, fully offline — nothing is uploaded, saved, or stored anywhere.
+This is the picture-by-picture guide to using S4. It walks the same journey as the manual in `about.md`, with a screenshot of every screen. Everything happens on the phone, fully offline — nothing is uploaded, saved, or stored anywhere. The only thing that persists besides ephemeral seed state is the mandatory 6-digit PIN (as a PBKDF2 verifier, never the PIN).
+
+## 0. PIN — first launch, then every launch
+
+On first launch S4 prompts you to set a 6-digit PIN (confirmed twice) before any other screen is shown.
+
+<img src="art/screens/guide/pin-setup-light.png" alt="PIN setup — 6 digits, confirm twice" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+If a PIN is set, every subsequent launch shows the PIN entry screen before any other screen. On success the app unlocks to where you left off. On failure the app tells you the PIN is wrong; after 5 failures a cooldown is enforced (30s, then 60s, 120s… doubling to a 24h cap). The cooldown survives reboots and wall-clock rollback (monotonic clock), and the phone's own lock screen remains the outer brute-force gate (out of scope for this cooldown).
+
+<img src="art/screens/guide/pin-unlock-light.png" alt="PIN unlock — enter 6 digits" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+**If you forget the PIN:** there is no recovery — the app is offline with no account. You must reinstall the app (the shares on paper are unaffected). This is the same gap as Airgate's `AuthPinScreen`/`PinStore` (well-tested, Keystore-backed).
+
+Manage the PIN from **Settings** (gear icon in the header) → **Change PIN**:
+
+<img src="art/screens/guide/settings-light.png" alt="Settings — PIN card" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+- **Change PIN** — requires current PIN (verified via `PinVerifyDialog`), then enter the new 6-digit PIN twice. The old verifier is replaced atomically (`v1:salt:iter:algo:hash`).
+
+<img src="art/screens/guide/pin-manage-light.png" alt="Change PIN — new + confirm, gated by current PIN" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+Dark variants of every PIN screen are captured by `make screens-dark`: `pin-setup-dark.png`, `pin-unlock-dark.png`, `settings-dark.png`, `pin-manage-dark.png`.
 
 ## 1. Split your seed phrase into shares
 
-1. Open S4. The split screen appears first.
+1. Open S4 (enter PIN). The split screen appears.
 2. Type your seed phrase (the 12, 18, or 24 words your wallet shows you) into the field. Word suggestions appear as you type.
 3. If your wallet uses a passphrase (a "25th word"), enter it too. The app shows a fingerprint preview so you can confirm the passphrase before splitting.
 4. Pick how many shares you want (2–16) and how many must be brought together to rebuild the wallet. The default is a sensible starting point: **6 shares, any 3 needed**.
 5. Tap **Split into N shares**.
 
 <img src="art/screens/screen-light.png" alt="Split screen" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
+
+The header's gear opens Settings (PIN) at any time.
 
 ## 2. Or use raw entropy hex instead
 
@@ -23,7 +47,7 @@ If you created your wallet with physical dice, you may have raw entropy hex rath
 S4 shows every share as its own block of English words. The fingerprint at the top is a short check code for your wallet.
 
 - **Write each share down on paper and store it separately.** No single place should hold enough shares to rebuild the wallet.
-- S4 never stores the shares itself — close the screen and they are gone.
+- S4 never stores the shares itself — close the screen and they are gone. The only persisted data is the mandatory PIN verifier.
 
 <img src="art/screens/guide/results-light.png" alt="Results page" width="340" style="border: 1px solid #aaaaaa; border-radius: 8px;" />
 
@@ -58,7 +82,9 @@ Entering too few shares (or a wrong or corrupted word) shows a clear error inste
 
 <img src="art/screens/guide/restore-error-light.png" alt="Restore error" width="340" />
 
-## Security notes
+## 8. Security notes
 
-- S4 never touches the network and stores nothing — all state lives in memory and is dropped when you leave the screen.
+- S4 never touches the network and stores only the mandatory PIN verifier besides ephemeral seed state — all seed state lives in memory and is dropped when you leave the screen or the app closes. Secrets use plain `remember` (not `rememberSaveable`) and `android:allowBackup="false"`.
+- **PIN:** 6 digits, PBKDF2-HMAC-SHA256 120k + Keystore-encrypted `enc:iv:cipher:hmac` (AAD-bound, `KeystoreKeyRecovery`), 5-attempt 30s→24h monotonic lockout, fail-closed `PinUnreadable`. Inspired by Airgate's well-tested gap.
 - Copying shares (or a guide that embeds the wallet) to the clipboard requires an explicit confirmation first, because the clipboard is readable by other apps.
+- `FLAG_SECURE` blocks screenshots/recents. PIN screens themselves are also `FLAG_SECURE`.

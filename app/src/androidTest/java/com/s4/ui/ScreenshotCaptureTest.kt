@@ -57,6 +57,10 @@ class ScreenshotCaptureTest {
     @Test
     fun parkOnEachView() {
         val filesDir = InstrumentationRegistry.getInstrumentation().targetContext.filesDir
+        val prefs = InstrumentationRegistry.getInstrumentation().targetContext.getSharedPreferences("s4_secure_prefs", Context.MODE_PRIVATE)
+        // Start clean: no PIN, fresh prompt. The activity is already launched by the rule,
+        // so we clear prefs and recreate to show the PIN setup.
+        prefs.edit().clear().apply()
         // Clear any leftover markers from a previous run so the host's poll
         // can't trip on a stale one before this run parks on the view.
         filesDir.listFiles { it.name.endsWith(".park") }?.forEach { it.delete() }
@@ -66,6 +70,67 @@ class ScreenshotCaptureTest {
             File(filesDir, "$name.park").writeText("1")
             Thread.sleep(PARK_MS)
         }
+
+        // 0a. PIN setup — first launch, no PIN.
+        // The rule already launched the activity; force a recreate after clearing prefs so the gate re-evaluates.
+        composeRule.activity.runOnUiThread { composeRule.activity.recreate() }
+        composeRule.waitForIdle()
+        Thread.sleep(500)
+        waitForText("Create PIN")
+        composeRule.waitForIdle()
+        park("pin-setup")
+
+        // Programmatically create a PIN (123456) so we don't flake on PBKDF2 timing,
+        // then force lock to capture the unlock screen.
+        try {
+            val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+            val pinMgr = com.s4.data.crypto.PinManager()
+            val salt = pinMgr.generateSalt()
+            val hash = pinMgr.hashPin("123456", salt)
+            val repo = com.s4.data.repository.PinRepository(ctx.getSharedPreferences("s4_secure_prefs", Context.MODE_PRIVATE))
+            // Use the same prefs instance the activity uses (clear + save)
+            // The activity's PinRepository uses s4_secure_prefs; we reuse it.
+            repo.savePin(hash, salt, com.s4.data.crypto.PinManager.DEFAULT_ITERATIONS, com.s4.data.crypto.PinManager.DEFAULT_ALGORITHM)
+        } catch (_: Exception) {}
+        // Force lock again to capture the unlock screen (PIN is now set, activity recreates locked).
+        composeRule.activity.runOnUiThread { composeRule.activity.recreate() }
+        composeRule.waitForIdle()
+        Thread.sleep(800)
+        waitForText("Enter PIN")
+        composeRule.waitForIdle()
+        park("pin-unlock")
+
+        // Unlock again for the rest of the flow — second node with "Enter PIN" is the editable field (first is label).
+        try {
+            composeRule.onAllNodesWithText("Enter PIN", substring = false)[1].performTextReplacement("123456")
+            composeRule.onNodeWithText("Unlock").performClick()
+            composeRule.waitForIdle()
+            Thread.sleep(800)
+        } catch (_: Exception) {
+            // Fallback: try any editable node
+            try { composeRule.onAllNodesWithText("Enter PIN")[1].performTextReplacement("123456"); composeRule.onNodeWithText("Unlock").performClick() } catch (_: Exception) {}
+        }
+
+        // 0b. Settings — reachable from the header gear after unlock. Park it to document PIN management.
+        waitForText("Split a wallet")
+        composeRule.onNodeWithTag("settingsButton").performClick()
+        waitForText("Settings")
+        composeRule.waitForIdle()
+        park("settings")
+
+        // 0c. PIN management — Change PIN (mandatory, requires current PIN).
+        composeRule.onNodeWithText("Change PIN").performClick()
+        waitForText("Change PIN")
+        composeRule.waitForIdle()
+        park("pin-manage")
+
+        // Back to split for the original flow — press system back (more reliable than hunting the Back button in the scroll).
+        composeRule.activity.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        Thread.sleep(400)
+        composeRule.activity.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        waitForText("Split a wallet")
+        composeRule.waitForIdle()
 
         // 1. Split screen: seed + passphrase, so the fingerprint preview card
         //    is visible. This is also the README screenshot (screen-<theme>.png).

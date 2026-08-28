@@ -67,12 +67,22 @@ The provisioning script (`airgap.sh`) installs the apps, disables the radios, an
 6. Beyond these, you can configure any other options Android AntiForensic Tools provides.
 7. Create a login password instead of a PIN, then set up your wallet in AirGap Vault.
 
+## App-level PIN: second lock when the phone is already unlocked
+
+Your phone's lock screen is a coarse gate. Once you unlock it to show a photo, lend it to a friend, or keep it on your desk, everything inside is exposed — including seed material. S4 adds a second, in-app PIN so even an unlocked phone cannot display shares without it.
+
+- **6 digits, confirmed twice — mandatory, no skip.** On first launch and via `Settings` → `Change PIN` you enter a 6-digit PIN twice. The app never persists the PIN — it stores only a verifier: PBKDF2-HMAC-SHA256 120k + 16-byte salt, encrypted as `enc:iv:cipher:hmac` AAD-bound under Android Keystore `S4MasterKey`/`S4HmacKey` (`KeystoreKeyRecovery` recreates a corrupted key, failing closed).
+- **Gate on every launch and every resume.** `MainActivity` checks `PinRepository.isPinSet()` before the `NavHost`; if set, `AuthPinScreen` is the first screen. `LifecycleEventObserver` `ON_STOP` re-locks when you leave the app, so background → foreground always re-enters through the PIN. `resolvePinGate`/`decideAuthPinSubmit` share one path — a `PinUnreadable` (tamper/corruption) never verifies against an empty hash and never counts as a failure.
+- **Brute-force throttling that survives power.** After 5 wrong attempts the app enforces 30s, then 60s, 120s… doubling to a 24h cap (`PinLockoutPolicy`, overflow-safe to `Long.MAX_VALUE`). The deadline is stored on a `MonotonicClock` (`elapsedRealtime` + persisted anchor), so a reboot or wall-clock rollback cannot clear it.
+- **Change requires the current PIN.** `Settings` → `Change PIN` opens `PinManagementScreen`; gated by `PinVerifyDialog` (same monotonic lockout). There is no remove — the PIN is mandatory. The new verifier is committed atomically via `ProtectedPrefsStore.protectedPutAll`; a refusal or disk failure leaves the old verifier intact.
+- **Forgetting means reinstall.** The app is offline with no account — there is no recovery. Back up the PIN like the shares: remember it, or reinstall and re-split from paper.
+
 ## What you get out of it
 
 - **Survival.** Your wallet survives the phone's self-destruct, fires, floods, lost drawers, and dead phones — as long as the minimum number of paper shares survives.
 - **Real theft protection.** A burglar who finds one share — even several, if fewer than the minimum — walks away with nothing.
 - **An inheritance plan that actually works.** Your family can recover the wallet without your help, without this app, and without any technical knowledge.
-- **Privacy.** Everything happens on the phone, offline. Nothing is uploaded, saved, or sent anywhere.
+- **Privacy.** Everything happens on the phone, offline. Nothing is uploaded, saved, or sent anywhere. The only thing that persists is the PIN verifier — the shares themselves are still paper-only.
 
 ## Your part of the bargain
 

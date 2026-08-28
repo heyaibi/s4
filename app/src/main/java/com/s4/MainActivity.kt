@@ -27,8 +27,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -36,13 +44,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.s4.data.repository.PinRepository
 import com.s4.navigation.Routes
 import com.s4.ui.RecoveryGuideScreen
 import com.s4.ui.RestoreScreen
+import com.s4.ui.SettingsScreen
 import com.s4.ui.SplitResultScreen
 import com.s4.ui.SplitScreen
 import com.s4.ui.SplitViewModel
 import com.s4.ui.components.S4BottomNavigationBar
+import com.s4.ui.pin.AuthPinScreen
+import com.s4.ui.pin.PinManagementScreen
 import com.s4.ui.theme.S4Theme
 
 class MainActivity : ComponentActivity() {
@@ -66,6 +78,38 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun S4App() {
+    val context = LocalContext.current
+    val pinRepository = remember { PinRepository(context) }
+
+    // PIN gate state: mandatory — PIN is required. The app always starts locked;
+    // AuthPinScreen shows setup (no PIN) or unlock (PIN set). No skip path.
+    var isUnlocked by remember { mutableStateOf(false) }
+
+    // Re-lock when the app goes to background (ON_STOP) if a PIN is set.
+    // This covers lending the phone / shoulder-surfing when the Android lock
+    // screen is already unlocked — the in-memory `isUnlocked` flag alone would
+    // otherwise keep seed material exposed. Uses the monotonic clock's lockout
+    // state for the gate, not just `remember`, so a backgrounded app always
+    // re-enters through `AuthPinScreen`.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, isUnlocked) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && pinRepository.isPinSet()) {
+                isUnlocked = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (!isUnlocked) {
+        AuthPinScreen(
+            repository = pinRepository,
+            onAuthenticated = { isUnlocked = true },
+        )
+        return
+    }
+
     val navController = rememberNavController()
     val splitViewModel: SplitViewModel = viewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -77,10 +121,13 @@ fun S4App() {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            S4BottomNavigationBar(
-                selectedSplit = selectedSplit,
-                onSelect = { route -> navController.navigateTo(route) },
-            )
+            // Hide bottom bar on settings / pin management screens
+            if (currentRoute != Routes.SETTINGS && currentRoute != Routes.PIN_MANAGE) {
+                S4BottomNavigationBar(
+                    selectedSplit = selectedSplit,
+                    onSelect = { route -> navController.navigateTo(route) },
+                )
+            }
         },
     ) { innerPadding ->
         NavHost(
@@ -93,18 +140,20 @@ fun S4App() {
                     viewModel = splitViewModel,
                     onSplitComplete = { navController.navigateTo(Routes.SPLIT_RESULT) },
                     onOpenGuide = { navController.navigateTo(Routes.GUIDE) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
             composable(Routes.RESTORE) {
-                RestoreScreen(onOpenGuide = { navController.navigateTo(Routes.GUIDE) })
+                RestoreScreen(
+                    onOpenGuide = { navController.navigateTo(Routes.GUIDE) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                )
             }
             composable(Routes.SPLIT_RESULT) {
                 SplitResultScreen(
                     viewModel = splitViewModel,
                     onOpenGuide = { navController.navigateTo(Routes.GUIDE) },
                     onDone = {
-                        // Drop the in-memory session (shares + entropy) when the user
-                        // finishes — the Recovery Guide must not re-show this wallet later.
                         splitViewModel.dismissResult()
                         navController.popBackStack()
                     },
@@ -117,6 +166,19 @@ fun S4App() {
                         splitViewModel.dismissResult()
                         navController.popBackStack()
                     },
+                )
+            }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    pinRepository = pinRepository,
+                    onManagePin = { navController.navigate(Routes.PIN_MANAGE) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PIN_MANAGE) {
+                PinManagementScreen(
+                    repository = pinRepository,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

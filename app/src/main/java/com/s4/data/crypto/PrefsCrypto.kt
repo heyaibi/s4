@@ -14,14 +14,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.s4.navigation
+package com.s4.data.crypto
 
-/** Navigation routes for the app's NavHost. */
-object Routes {
-    const val SPLIT = "split"
-    const val RESTORE = "restore"
-    const val SPLIT_RESULT = "splitResult"
-    const val GUIDE = "recoveryGuide"
-    const val SETTINGS = "settings"
-    const val PIN_MANAGE = "pinManage"
+/**
+ * Encryption + keyed-MAC over persisted protected values.
+ */
+interface PrefsCrypto {
+    fun encrypt(data: ByteArray, aad: ByteArray): Pair<ByteArray, ByteArray>
+    fun decrypt(ciphertext: ByteArray, iv: ByteArray, aad: ByteArray): ByteArray
+    fun hmac(data: ByteArray): ByteArray
 }

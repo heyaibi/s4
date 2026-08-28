@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- PIN protection: mandatory 6-digit PIN, confirmed twice, required on first launch and via `Settings` gear → `Change PIN`. `AuthPinScreen` setup/unlock, `PinVerifyDialog` for change, `SettingsScreen`.
+- Secure verifier: PBKDF2-HMAC-SHA256 120k + 16B salt, `PinManager` constant-time `MessageDigest.isEqual`, `PinStore` single-record `v1:salt:iter:algo:hash` (legacy `pin_hash`/`pin_salt` read for upgrade), refusal on empty/invalid, anti-downgrade, `ProtectedPrefsStore` `enc:iv:cipher:hmac` AAD-bound under Android Keystore `S4MasterKey`/`S4HmacKey` with `KeystoreKeyRecovery`, `MonotonicClock` (`elapsedRealtime` + anchor, survives reboot/rollback), `PinRepository` facade.
+- Lockout: `PinLockoutPolicy` 5→30s doubling to 24h cap (overflow-safe), `PinStore` synchronized `lockoutLock`, `getPinLockoutRemainingMs()` monotonic, `LifecycleEventObserver` ON_STOP re-lock when PIN is set (always, since PIN is mandatory).
+- Screenshots: `ScreenshotCaptureTest` parks `pin-setup`/`pin-unlock`/`settings`/`pin-manage` (light+dark) via `adb emu screenrecord` (FLAG_SECURE-safe), `Makefile` `screens`/`screens-dark` now 12 parks each.
+- Tests: 111 new JVM tests (port of Airgate) — `PinManagerTest` 26, `PinStoreTest` 44, `MonotonicClockTest` 12, `PinLockoutPolicyTest` 11, `PinGateTest` 6, `AuthPinSubmitDecisionTest` 12 (total now 202) + `PinFlowInstrumentedTest` (setup/unlock/lockout/Settings).
+
+### Changed
+- `MainActivity` gates `NavHost` behind mandatory `AuthPinScreen` (setup if no PIN, unlock if PIN `isUnlocked=false` on launch), bottom bar hidden on `SETTINGS`/`PIN_MANAGE`, `FLAG_SECURE` comment restored.
+- `S4HeaderBar` now exposes `settingsButton` gear → `Routes.SETTINGS`.
+- `README.md` / `user-guide.md` / `about.md` refactored for PIN (threat model, What it does, Security model, Project layout, Testing, screenshots).
+
 ## [0.1.0] - 2026-08-13
 
 ### Added

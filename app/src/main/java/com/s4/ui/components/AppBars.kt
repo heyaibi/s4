@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -49,7 +51,10 @@ import com.s4.ui.theme.MonoMeta
 
 /** Header bar: brand header mark with app name and hairline separator. */
 @Composable
-fun S4HeaderBar() {
+fun S4HeaderBar(
+    showSettings: Boolean = true,
+    onSettingsClick: (() -> Unit)? = null,
+) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
 
@@ -86,7 +91,7 @@ fun S4HeaderBar() {
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
                     text  = stringResource(R.string.header_brand_title),
                     style = MaterialTheme.typography.titleSmall,
@@ -97,6 +102,19 @@ fun S4HeaderBar() {
                     style = MonoMeta.value,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+
+            if (showSettings && onSettingsClick != null) {
+                androidx.compose.material3.IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(36.dp).testTag("settingsButton"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.nav_settings),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
