@@ -47,7 +47,8 @@ class SessionCodeGeneratorTest {
     fun `generated codes are effectively unique`() {
         val seen = mutableSetOf<String>()
         repeat(10_000) { seen += SessionCodeGenerator.generate() }
-        assertEquals(10_000, seen.size)
+        // Birthday bound: 10k random in 31^6 (~887M) collides ~5% of runs, so allow 1-2 dupes
+        assertTrue("expected ~10k distinct codes, got ${seen.size}", seen.size >= 9_995)
     }
 
     @Test
@@ -85,8 +86,21 @@ class SessionCodeGeneratorTest {
 
     @Test
     fun `requestCode is collision-free across a large code space`() {
+        // Deterministic: encode 0..19999 in base-31 using the same alphabet, so codes are
+        // distinct by construction — avoids the birthday-paradox flake of random generation
+        // (20k random in 31^6 space collides ~20% of runs).
+        val alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+        fun encode(value: Int): String {
+            var v = value
+            val chars = CharArray(SessionCodeGenerator.CODE_LENGTH)
+            for (i in SessionCodeGenerator.CODE_LENGTH - 1 downTo 0) {
+                chars[i] = alphabet[v % alphabet.length]
+                v /= alphabet.length
+            }
+            return String(chars)
+        }
         val seen = mutableSetOf<Int>()
-        repeat(20_000) { seen += SessionCodeGenerator.requestCode(SessionCodeGenerator.generate()) }
+        repeat(20_000) { seen += SessionCodeGenerator.requestCode(encode(it)) }
         assertEquals(20_000, seen.size)
     }
 

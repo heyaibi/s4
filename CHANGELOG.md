@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-28
+
 ### Added
 - PIN protection: mandatory 6-digit PIN, confirmed twice, required on first launch and via `Settings` gear → `Change PIN`. `AuthPinScreen` setup/unlock, `PinVerifyDialog` for change, `SettingsScreen`.
 - Secure verifier: PBKDF2-HMAC-SHA256 120k + 16B salt, `PinManager` constant-time `MessageDigest.isEqual`, `PinStore` single-record `v1:salt:iter:algo:hash` (legacy `pin_hash`/`pin_salt` read for upgrade), refusal on empty/invalid, anti-downgrade, `ProtectedPrefsStore` `enc:iv:cipher:hmac` AAD-bound under Android Keystore `S4MasterKey`/`S4HmacKey` with `KeystoreKeyRecovery`, `MonotonicClock` (`elapsedRealtime` + anchor, survives reboot/rollback), `PinRepository` facade.
@@ -23,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - `Makefile` `JAVA_HOME` now falls back to Android Studio's JBR (`/Applications/Android Studio.app/Contents/jbr/Contents/Home`) when the environment `JAVA_HOME` points at a missing homebrew path (e.g. stale `openjdk@26`), fixing `make build/install` on fresh shells.
 - `Makefile` `wait_and_shot` no longer sends `input keyevent 111` (ESCAPE) before each screenshot — it dismissed the parked PIN dialog and flaked `make screens`; the test already hides the keyboard via `closeKeyboard()`.
+- `SessionCodeGeneratorTest` flake fix: `requestCode is collision-free` now encodes 0..19999 deterministically in base-31 instead of random `generate()` (birthday-paradox ~20% collision at 20k in 31^6 space); `generated codes are effectively unique` now tolerates ≤5 dupes in 10k (~5% collision).
 
 ## [0.1.0] - 2026-08-13
 

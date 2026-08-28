@@ -18,10 +18,10 @@
     "checksum": "sha256:0ea582ef13866781b1c9d1585a5f0286d1d7590a25a261e1f6a74d03cbbaf96d"
   },
   {
-    "name": "S4 v0.1.0",
+    "name": "S4 v0.2.0",
     "pkg": "com.s4",
-    "url": "https://github.com/heyaibi/s4/releases/download/v0.1.0/s4-v0.1.0.apk",
-    "checksum": "sha256:e0a0c685608e0c93831d1e250d73f09aa71717d9c7290a90dc8da637380b733c"
+    "url": "https://github.com/heyaibi/s4/releases/download/v0.2.0/s4-v0.2.0.apk",
+    "checksum": "sha256:a2e4c8a312adbcc839fb06643d679f3e8e89787dad2083a07524f0f9b8911616"
   },
   {
     "name": "Airgate v0.1.0",
