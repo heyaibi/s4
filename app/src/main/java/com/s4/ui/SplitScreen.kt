@@ -111,7 +111,7 @@ fun SplitScreen(
     val resumeErrFormat = stringResource(R.string.resume_err_format)
 
     val resume: (String) -> Unit = { code ->
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             isResuming = true
             resumeError = null
             val loaded = withContext(Dispatchers.Default) { sessionRepository.load(code) }

@@ -136,7 +136,7 @@ fun PinVerifyDialog(
                         }
                         is PinGateDecision.Verify -> {
                             isVerifying = true
-                            scope.launch {
+                            scope.launch(Dispatchers.Main) {
                                 val ok = withContext(Dispatchers.Default) {
                                     pinManager.verifyPin(
                                         pinToVerify,
